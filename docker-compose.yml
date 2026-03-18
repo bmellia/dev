@@ -1,0 +1,52 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: household-ledger-backend
+    working_dir: /app
+    environment:
+      BACKEND_PORT: ${BACKEND_PORT:-8000}
+      MARIADB_HOST: db
+      MARIADB_PORT: ${MARIADB_PORT:-3306}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-ledger}
+      MARIADB_USER: ${MARIADB_USER:-ledger}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-change-me}
+    volumes:
+      - ./backend:/app
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      - db
+
+  frontend:
+    image: node:22-alpine
+    container_name: household-ledger-frontend
+    working_dir: /app
+    command: ["sleep", "infinity"]
+    environment:
+      FRONTEND_PORT: ${FRONTEND_PORT:-3000}
+      BACKEND_PORT: ${BACKEND_PORT:-8000}
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+
+  db:
+    image: mariadb:11.8
+    container_name: household-ledger-db
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-ledger}
+      MARIADB_USER: ${MARIADB_USER:-ledger}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-change-me}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-change-root-password}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "${MARIADB_PORT:-3306}:3306"
+
+volumes:
+  mariadb_data:
