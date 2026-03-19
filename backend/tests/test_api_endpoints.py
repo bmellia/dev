@@ -19,6 +19,7 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 from app.models import Account, AdminUser, Category, Transaction
+from app.services.auth_service import create_admin_user
 
 
 class ApiEndpointsTestCase(unittest.TestCase):
@@ -57,6 +58,7 @@ class ApiEndpointsTestCase(unittest.TestCase):
     def setUp(self) -> None:
         Base.metadata.drop_all(bind=self.engine)
         Base.metadata.create_all(bind=self.engine)
+        self._seed_admin_user()
         self.client = TestClient(app)
 
     def tearDown(self) -> None:
@@ -233,6 +235,29 @@ class ApiEndpointsTestCase(unittest.TestCase):
         self.assertIn("date,transaction_type,account,category,amount", export_response.text)
         self.assertIn("2026-03-01,expense,Card,Transport,1400,Bus,manual,,", export_response.text)
 
+    def test_change_password(self) -> None:
+        change_response = self.client.post(
+            "/auth/change-password",
+            json={
+                "current_password": "admin1234",
+                "new_password": "nextpass1234",
+            },
+        )
+        self.assertEqual(change_response.status_code, 204)
+
+        failed_login_response = self.client.post(
+            "/auth/login",
+            json={"username": "admin", "password": "admin1234"},
+        )
+        self.assertEqual(failed_login_response.status_code, 401)
+
+        success_login_response = self.client.post(
+            "/auth/login",
+            json={"username": "admin", "password": "nextpass1234"},
+        )
+        self.assertEqual(success_login_response.status_code, 200)
+        self.assertEqual(success_login_response.json()["username"], "admin")
+
     def _create_account(self, name: str, account_type: str) -> int:
         response = self.client.post(
             "/accounts",
@@ -248,6 +273,13 @@ class ApiEndpointsTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 201)
         return response.json()["id"]
+
+    def _seed_admin_user(self) -> None:
+        db = self.SessionLocal()
+        try:
+            create_admin_user(db, "admin", "admin1234")
+        finally:
+            db.close()
 
 
 if __name__ == "__main__":

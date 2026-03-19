@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.session import clear_session_cookie, require_admin_user, set_session_cookie
 from app.db.session import get_db
-from app.services.auth_service import authenticate_admin
+from app.models.admin_user import AdminUser
+from app.services.auth_service import authenticate_admin, change_admin_password
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -18,6 +19,11 @@ class LoginRequest(BaseModel):
 class AdminSessionResponse(BaseModel):
     id: int
     username: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=8)
 
 
 @router.post("/login", response_model=AdminSessionResponse)
@@ -49,3 +55,30 @@ def me(
     admin_user=Depends(require_admin_user),
 ) -> AdminSessionResponse:
     return AdminSessionResponse(id=admin_user.id, username=admin_user.username)
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: ChangePasswordRequest,
+    admin_user=Depends(require_admin_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    stored_admin_user = db.get(AdminUser, admin_user.id)
+    if stored_admin_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Admin user not found",
+        )
+
+    if not change_admin_password(
+        db,
+        stored_admin_user,
+        payload.current_password,
+        payload.new_password,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

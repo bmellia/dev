@@ -30,3 +30,19 @@ def authenticate_admin(db: Session, username: str, password: str) -> AdminUser |
         return None
 
     return admin_user
+
+
+def change_admin_password(
+    db: Session,
+    admin_user: AdminUser,
+    current_password: str,
+    new_password: str,
+) -> bool:
+    if not verify_password(current_password, admin_user.password_hash):
+        return False
+
+    admin_user.password_hash = get_password_hash(new_password)
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+    return True

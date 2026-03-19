@@ -1,27 +1,72 @@
 # Self-hosted Web Household Ledger
 
-Initial scaffold for the MVP web household ledger described in [docs/prd.md](/data/dev/docs/prd.md).
+MVP web household ledger for single-admin self-hosted use. Product scope and constraints are defined in [docs/prd.md](/data/dev/docs/prd.md), and the ticket sequence is tracked in [docs/backlog.md](/data/dev/docs/backlog.md).
 
-Current scope in this repository:
-- `backend/`: backend application area
-- `frontend/`: frontend application area
-- `docs/`: product and backlog documents
-- `infra/`: infrastructure-related files
-- `scripts/`: local operational helpers
+Current repository areas:
+- `backend/`: FastAPI + SQLAlchemy backend
+- `frontend/`: React + Vite frontend
+- `docs/`: PRD, backlog, runbook
+- `infra/`: reserved infrastructure area
+- `scripts/`: Codex session/log helpers
 
-Current baseline runtime files:
-- `docker-compose.yml`: local/server container baseline
-- `.env.example`: database and port environment template
-- `backend/Dockerfile`: backend container image definition
-- `backend/app/main.py`: FastAPI bootstrap with `/health`
-- `backend/app/core/config.py`: environment-based backend settings
-- `backend/app/db/session.py`: SQLAlchemy engine and session pattern
+Implemented MVP baseline:
+- Session-based admin login API
+- Accounts CRUD API
+- Categories CRUD API
+- Transactions CRUD API
+- Monthly/day transaction query API
+- Dashboard summary/account summary API
+- CSV export API
+- React frontend scaffold
+- Login UI
+- Dashboard UI
+- Transactions list UI
+- Settings UI for accounts, categories, CSV export, password change
+- Backend request-level tests in Docker Python runtime
 
-You can copy `.env.example` to `.env` later, but the current Compose file also has safe defaults so the baseline file can be reviewed without app code in place.
-
+## Runtime
 Compose services and default ports:
 - `backend`: `8000`
 - `frontend`: `3000`
-- `db` (MariaDB): `3306`
+- `db`: `3306`
 
-Current repository state remains scaffold-first. Application code, API logic, and framework-specific bootstrap are deferred to later tickets.
+Core files:
+- `docker-compose.yml`
+- `.env.example`
+- `backend/Dockerfile`
+- `frontend/Dockerfile`
+
+## Local Start
+1. Copy `.env.example` to `.env` if you need non-default values.
+2. Start the stack:
+
+```bash
+docker compose -f /data/dev/docker-compose.yml up --build
+```
+
+3. Access:
+- Frontend: `http://localhost:3000`
+- Backend health: `http://localhost:8000/health`
+
+## Backend Checks
+Run backend API tests in Docker:
+
+```bash
+docker run --rm -v /data/dev/backend:/app -w /app python:3.12-slim sh -lc "pip install --no-cache-dir -r requirements-dev.txt && python -m unittest discover -s tests -v"
+```
+
+## Frontend Checks
+Run frontend production build in Docker:
+
+```bash
+docker run --rm -v /data/dev/frontend:/app -w /app node:22-alpine sh -lc "npm install && npm run build"
+```
+
+## MVP Constraints
+- Single admin user only
+- KRW integer amounts only
+- `income` and `expense` only; transfer is excluded from MVP
+- CSV Import is excluded from MVP
+- Advanced stats, recurring transactions, budgeting, OCR, attachments, notifications are excluded from MVP
+
+Detailed startup, testing, and operational notes are in [docs/runbook.md](/data/dev/docs/runbook.md).

@@ -1,0 +1,320 @@
+import { useEffect, useState, type FormEvent } from "react";
+
+import {
+  createAccount,
+  deactivateAccount,
+  fetchAccounts,
+  updateAccount,
+  type Account,
+} from "../services/accounts";
+import {
+  createCategory,
+  deactivateCategory,
+  fetchCategories,
+  updateCategory,
+  type Category,
+} from "../services/categories";
+import { apiBaseUrl } from "../config";
+import { changePassword } from "../services/auth";
+import { InfoCard } from "../ui/InfoCard";
+import { PageHero } from "../ui/PageHero";
+
+
+const accountTypeOptions: Account["account_type"][] = [
+  "cash",
+  "bank",
+  "card",
+  "ewallet",
+  "liability",
+];
+
+const categoryTypeOptions: Category["category_type"][] = ["income", "expense"];
+
+
+export function SettingsPage() {
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [accountName, setAccountName] = useState("");
+  const [accountType, setAccountType] = useState<Account["account_type"]>("bank");
+  const [editingAccountId, setEditingAccountId] = useState<number | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryType, setCategoryType] = useState<Category["category_type"]>("expense");
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const loadData = async () => {
+    try {
+      const [nextAccounts, nextCategories] = await Promise.all([
+        fetchAccounts(),
+        fetchCategories(),
+      ]);
+      setAccounts(nextAccounts);
+      setCategories(nextCategories);
+      setErrorMessage("");
+    } catch {
+      setErrorMessage("설정 데이터를 불러오지 못했습니다.");
+    }
+  };
+
+  useEffect(() => {
+    void loadData();
+  }, []);
+
+  const handleAccountSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    try {
+      if (editingAccountId === null) {
+        await createAccount({ name: accountName, account_type: accountType });
+      } else {
+        await updateAccount(editingAccountId, {
+          name: accountName,
+          account_type: accountType,
+        });
+      }
+
+      setAccountName("");
+      setAccountType("bank");
+      setEditingAccountId(null);
+      setStatusMessage("계정을 저장했습니다.");
+      await loadData();
+    } catch {
+      setErrorMessage("계정 저장에 실패했습니다.");
+    }
+  };
+
+  const handleCategorySubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    try {
+      if (editingCategoryId === null) {
+        await createCategory({ name: categoryName, category_type: categoryType });
+      } else {
+        await updateCategory(editingCategoryId, {
+          name: categoryName,
+          category_type: categoryType,
+        });
+      }
+
+      setCategoryName("");
+      setCategoryType("expense");
+      setEditingCategoryId(null);
+      setStatusMessage("카테고리를 저장했습니다.");
+      await loadData();
+    } catch {
+      setErrorMessage("카테고리 저장에 실패했습니다.");
+    }
+  };
+
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    try {
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setErrorMessage("");
+      setStatusMessage("비밀번호를 변경했습니다.");
+    } catch {
+      setErrorMessage("비밀번호 변경에 실패했습니다.");
+    }
+  };
+
+  return (
+    <div className="page">
+      <PageHero
+        eyebrow="Tickets 19-20"
+        title="설정"
+        description="계정·카테고리 목록과 생성·수정·비활성화, CSV export까지 연결했습니다. 비밀번호 변경은 백엔드 API가 준비되면 이어서 붙일 수 있습니다."
+      />
+      <div className="card-grid">
+        <InfoCard
+          title="계정 관리"
+          description={`${accounts.length}개 계정`}
+        />
+        <InfoCard
+          title="카테고리 관리"
+          description={`${categories.length}개 카테고리`}
+        />
+        <InfoCard
+          title="CSV Export"
+          description="현재 거래 데이터를 UTF-8 CSV로 내려받습니다."
+          footer={
+            <a
+              className="primary-link"
+              href={`${apiBaseUrl}/exports/transactions.csv`}
+              target="_blank"
+            >
+              CSV 다운로드
+            </a>
+          }
+        />
+      </div>
+      {statusMessage ? <p className="status-message">{statusMessage}</p> : null}
+      {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
+      <div className="settings-grid">
+        <section className="data-panel">
+          <div className="data-panel-head">
+            <h3>계정 관리</h3>
+            <p>{editingAccountId ? "수정 모드" : "생성 모드"}</p>
+          </div>
+          <form className="stack-form" onSubmit={handleAccountSubmit}>
+            <label className="field">
+              <span>계정명</span>
+              <input
+                onChange={(event) => setAccountName(event.target.value)}
+                value={accountName}
+              />
+            </label>
+            <label className="field">
+              <span>계정 유형</span>
+              <select
+                onChange={(event) =>
+                  setAccountType(event.target.value as Account["account_type"])
+                }
+                value={accountType}
+              >
+                {accountTypeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="primary-button" type="submit">
+              {editingAccountId ? "계정 수정" : "계정 추가"}
+            </button>
+          </form>
+          <div className="transaction-list">
+            {accounts.map((account) => (
+              <article className="transaction-row" key={account.id}>
+                <div>
+                  <strong>{account.name}</strong>
+                  <p>
+                    {account.account_type} · {account.is_active ? "활성" : "비활성"}
+                  </p>
+                </div>
+                <div className="action-row">
+                  <button
+                    className="ghost-button"
+                    onClick={() => {
+                      setEditingAccountId(account.id);
+                      setAccountName(account.name);
+                      setAccountType(account.account_type);
+                    }}
+                    type="button"
+                  >
+                    수정
+                  </button>
+                  <button
+                    className="ghost-button"
+                    onClick={() => void deactivateAccount(account.id).then(loadData)}
+                    type="button"
+                  >
+                    비활성화
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="data-panel">
+          <div className="data-panel-head">
+            <h3>카테고리 관리</h3>
+            <p>{editingCategoryId ? "수정 모드" : "생성 모드"}</p>
+          </div>
+          <form className="stack-form" onSubmit={handleCategorySubmit}>
+            <label className="field">
+              <span>카테고리명</span>
+              <input
+                onChange={(event) => setCategoryName(event.target.value)}
+                value={categoryName}
+              />
+            </label>
+            <label className="field">
+              <span>카테고리 유형</span>
+              <select
+                onChange={(event) =>
+                  setCategoryType(event.target.value as Category["category_type"])
+                }
+                value={categoryType}
+              >
+                {categoryTypeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button className="primary-button" type="submit">
+              {editingCategoryId ? "카테고리 수정" : "카테고리 추가"}
+            </button>
+          </form>
+          <div className="transaction-list">
+            {categories.map((category) => (
+              <article className="transaction-row" key={category.id}>
+                <div>
+                  <strong>{category.name}</strong>
+                  <p>
+                    {category.category_type} · {category.is_active ? "활성" : "비활성"}
+                  </p>
+                </div>
+                <div className="action-row">
+                  <button
+                    className="ghost-button"
+                    onClick={() => {
+                      setEditingCategoryId(category.id);
+                      setCategoryName(category.name);
+                      setCategoryType(category.category_type);
+                    }}
+                    type="button"
+                  >
+                    수정
+                  </button>
+                  <button
+                    className="ghost-button"
+                    onClick={() => void deactivateCategory(category.id).then(loadData)}
+                    type="button"
+                  >
+                    비활성화
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+        <section className="data-panel">
+          <div className="data-panel-head">
+            <h3>비밀번호 변경</h3>
+            <p>관리자 세션 유지</p>
+          </div>
+          <form className="stack-form" onSubmit={handlePasswordSubmit}>
+            <label className="field">
+              <span>현재 비밀번호</span>
+              <input
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                type="password"
+                value={currentPassword}
+              />
+            </label>
+            <label className="field">
+              <span>새 비밀번호</span>
+              <input
+                minLength={8}
+                onChange={(event) => setNewPassword(event.target.value)}
+                type="password"
+                value={newPassword}
+              />
+            </label>
+            <button className="primary-button" type="submit">
+              비밀번호 변경
+            </button>
+          </form>
+        </section>
+      </div>
+    </div>
+  );
+}
