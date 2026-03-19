@@ -201,9 +201,62 @@ code {
   color: #52606d;
 }
 
+.info-card-body {
+  margin-top: 1rem;
+}
+
 .info-card-footer {
   margin-top: 1rem;
   color: #334155;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.summary-stat {
+  padding: 0.9rem 1rem;
+  border-radius: 1rem;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.summary-stat-positive {
+  background: rgba(5, 150, 105, 0.1);
+}
+
+.summary-stat-negative {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.summary-stat-label {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.85rem;
+  color: #52606d;
+}
+
+.summary-stat-value {
+  font-size: 1.05rem;
+}
+
+.compact-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.compact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.compact-row:first-child {
+  border-top: 0;
+  padding-top: 0;
 }
 
 .filter-panel,

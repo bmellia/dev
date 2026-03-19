@@ -41,7 +41,7 @@ Expected ports:
 
 Default bootstrap admin:
 - username: `admin`
-- password: `change-admin-password`
+- password: `1234*`
 
 Change these values before non-local deployment.
 

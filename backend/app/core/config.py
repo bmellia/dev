@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     app_log_dir: str = "/data/log/app"
     app_log_level: str = "INFO"
     admin_username: str = "admin"
-    admin_password: str = "change-admin-password"
+    admin_password: str = "1234*"
 
     @property
     def sqlalchemy_database_uri(self) -> str:

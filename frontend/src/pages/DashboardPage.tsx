@@ -13,6 +13,7 @@ import {
 } from "../services/transactions";
 import { InfoCard } from "../ui/InfoCard";
 import { PageHero } from "../ui/PageHero";
+import { SummaryStat } from "../ui/SummaryStat";
 
 
 const currentMonth = new Date().toISOString().slice(0, 7);
@@ -20,6 +21,11 @@ const currentMonth = new Date().toISOString().slice(0, 7);
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
+}
+
+
+function formatTransactionType(type: TransactionRecord["transaction_type"]) {
+  return type === "income" ? "수입" : "지출";
 }
 
 
@@ -81,8 +87,29 @@ export function DashboardPage() {
             isLoading
               ? "월간 요약을 불러오는 중입니다."
               : summary
-              ? `수입 ${formatCurrency(summary.income_total)}원 · 지출 ${formatCurrency(summary.expense_total)}원 · 순합계 ${formatCurrency(summary.net_total)}원`
+              ? "수입, 지출, 순합계를 빠르게 확인합니다."
               : "표시할 월간 요약이 없습니다."
+          }
+          body={
+            summary ? (
+              <div className="summary-grid">
+                <SummaryStat
+                  label="수입"
+                  tone="positive"
+                  value={`${formatCurrency(summary.income_total)}원`}
+                />
+                <SummaryStat
+                  label="지출"
+                  tone="negative"
+                  value={`${formatCurrency(summary.expense_total)}원`}
+                />
+                <SummaryStat
+                  label="순합계"
+                  tone={summary.net_total >= 0 ? "positive" : "negative"}
+                  value={`${formatCurrency(summary.net_total)}원`}
+                />
+              </div>
+            ) : null
           }
         />
         <InfoCard
@@ -91,14 +118,20 @@ export function DashboardPage() {
             isLoading
               ? "계정 요약을 불러오는 중입니다."
               : accounts.length > 0
-              ? accounts
-                  .slice(0, 3)
-                  .map(
-                    (account) =>
-                      `${account.name} ${formatCurrency(account.balance)}원`,
-                  )
-                  .join(" · ")
+              ? "잔액이 큰 순서로 일부 계정을 먼저 보여줍니다."
               : "표시할 계정 요약이 없습니다."
+          }
+          body={
+            accounts.length > 0 ? (
+              <div className="compact-list">
+                {accounts.slice(0, 4).map((account) => (
+                  <div className="compact-row" key={account.account_id}>
+                    <span>{account.name}</span>
+                    <strong>{formatCurrency(account.balance)}원</strong>
+                  </div>
+                ))}
+              </div>
+            ) : null
           }
         />
         <InfoCard
@@ -107,13 +140,24 @@ export function DashboardPage() {
             isLoading
               ? "최근 거래를 불러오는 중입니다."
               : recentTransactions.length > 0
-              ? recentTransactions
-                  .map(
-                    (transaction) =>
-                      `${transaction.transaction_type === "income" ? "수입" : "지출"} ${formatCurrency(transaction.amount)}원`,
-                  )
-                  .join(" · ")
+              ? "가장 최근 거래 5건을 보여줍니다."
               : "최근 거래가 없습니다."
+          }
+          body={
+            recentTransactions.length > 0 ? (
+              <div className="compact-list">
+                {recentTransactions.map((transaction) => (
+                  <div className="compact-row" key={transaction.id}>
+                    <span>
+                      {formatTransactionType(transaction.transaction_type)}
+                      {" · "}
+                      {transaction.occurred_at.slice(5, 10)}
+                    </span>
+                    <strong>{formatCurrency(transaction.amount)}원</strong>
+                  </div>
+                ))}
+              </div>
+            ) : null
           }
         />
       </div>
