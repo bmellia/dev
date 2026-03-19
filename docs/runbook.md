@@ -19,6 +19,8 @@ Important variables:
 - `SESSION_COOKIE_SECURE`
 - `SESSION_COOKIE_SAMESITE`
 - `SESSION_COOKIE_MAX_AGE`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD`
 - `APP_LOG_DIR`
 - `APP_LOG_LEVEL`
 - `VITE_API_BASE_URL`
@@ -36,6 +38,12 @@ Expected ports:
 - Frontend: `3000`
 - Backend: `8000`
 - MariaDB: `3306`
+
+Default bootstrap admin:
+- username: `admin`
+- password: `change-admin-password`
+
+Change these values before non-local deployment.
 
 ## Health Check
 Backend health endpoint:
@@ -65,6 +73,21 @@ Frontend build check:
 ```bash
 docker run --rm -v /data/dev/frontend:/app -w /app node:22-alpine sh -lc "npm install && npm run build"
 ```
+
+## Compose Smoke Test
+Use the repository smoke test script for a reproducible startup check:
+
+```bash
+/data/dev/scripts/compose-smoke-test.sh
+```
+
+This script:
+- starts the compose stack with `--build`
+- checks backend `/health` from inside the backend container
+- checks session login with the bootstrap admin from inside the backend container
+- checks frontend HTML from inside the frontend container
+- prints recent backend/frontend logs
+- tears the stack down on exit
 
 ## MVP Exclusions
 The following are out of scope for MVP:

@@ -11,6 +11,7 @@ Current repository areas:
 
 Implemented MVP baseline:
 - Session-based admin login API
+- Startup admin bootstrap for compose/runtime environments
 - Accounts CRUD API
 - Categories CRUD API
 - Transactions CRUD API
@@ -48,6 +49,12 @@ docker compose -f /data/dev/docker-compose.yml up --build
 - Frontend: `http://localhost:3000`
 - Backend health: `http://localhost:8000/health`
 
+Default bootstrap admin credentials:
+- username: `admin`
+- password: `change-admin-password`
+
+Change them in `.env` before non-local use.
+
 ## Backend Checks
 Run backend API tests in Docker:
 
@@ -60,6 +67,13 @@ Run frontend production build in Docker:
 
 ```bash
 docker run --rm -v /data/dev/frontend:/app -w /app node:22-alpine sh -lc "npm install && npm run build"
+```
+
+## Compose Smoke Test
+Run an end-to-end startup and in-container smoke check:
+
+```bash
+/data/dev/scripts/compose-smoke-test.sh
 ```
 
 ## MVP Constraints
