@@ -128,6 +128,7 @@ export function TransactionsPage() {
   const selectedCategoryName =
     filteredCategories.find((category) => String(category.id) === categoryId)?.name ??
     "선택 안 함";
+  const canSubmitTransaction = accounts.length > 0;
 
   const visibleTransactions = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -270,6 +271,23 @@ export function TransactionsPage() {
           <h3>{editingTransactionId ? "거래 수정" : "거래 추가"}</h3>
           <p>{editingTransactionId ? "선택된 거래 편집 중" : "새 거래 입력"}</p>
         </div>
+        {!canSubmitTransaction ? (
+          <div className="guide-callout">
+            <strong>입력 전 준비 필요</strong>
+            <p>활성 계정이 아직 없습니다. 설정에서 계정을 먼저 추가해야 거래를 저장할 수 있습니다.</p>
+            <div className="quick-link-grid">
+              <Link className="primary-link" to="/settings">
+                계정 만들러 가기
+              </Link>
+            </div>
+          </div>
+        ) : null}
+        {canSubmitTransaction && filteredCategories.length === 0 ? (
+          <div className="guide-callout">
+            <strong>카테고리 없음</strong>
+            <p>현재 유형에 맞는 활성 카테고리가 없습니다. 카테고리 없이 저장할 수 있지만, 정리가 필요하면 설정에서 추가하세요.</p>
+          </div>
+        ) : null}
         <div className="settings-grid">
           <label className="field">
             <span>거래 일시</span>
@@ -361,7 +379,7 @@ export function TransactionsPage() {
           </p>
         </div>
         <div className="action-row">
-          <button className="primary-button" type="submit">
+          <button className="primary-button" disabled={!canSubmitTransaction} type="submit">
             {editingTransactionId ? "거래 수정" : "거래 추가"}
           </button>
           <button
