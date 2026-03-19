@@ -76,6 +76,15 @@ Run an end-to-end startup and in-container smoke check:
 /data/dev/scripts/compose-smoke-test.sh
 ```
 
+## Optional Demo Data
+If the stack is already up and you want sample ledger data for UI review:
+
+```bash
+/data/dev/scripts/seed-demo-data.sh
+```
+
+This only seeds when there are no existing transactions.
+
 ## MVP Constraints
 - Single admin user only
 - KRW integer amounts only

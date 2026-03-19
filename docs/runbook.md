@@ -89,6 +89,19 @@ This script:
 - prints recent backend/frontend logs
 - tears the stack down on exit
 
+## Optional Demo Data
+For demo or UI review in a running compose stack:
+
+```bash
+/data/dev/scripts/seed-demo-data.sh
+```
+
+Behavior:
+- runs inside the backend container
+- bootstraps schema/admin if needed
+- inserts sample accounts, categories, and transactions
+- skips automatically when transactions already exist
+
 ## MVP Exclusions
 The following are out of scope for MVP:
 - CSV Import
