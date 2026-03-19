@@ -31,6 +31,7 @@ function formatCurrency(value: number) {
 export function TransactionsPage() {
   const [month, setMonth] = useState(defaultMonth);
   const [day, setDay] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | TransactionRecord["transaction_type"]>("all");
   const [sortOrder, setSortOrder] = useState<"latest" | "oldest" | "amount_desc" | "amount_asc">("latest");
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
@@ -129,10 +130,30 @@ export function TransactionsPage() {
     "선택 안 함";
 
   const visibleTransactions = useMemo(() => {
-    const filtered =
-      typeFilter === "all"
-        ? transactions
-        : transactions.filter((transaction) => transaction.transaction_type === typeFilter);
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const filtered = transactions.filter((transaction) => {
+      if (typeFilter !== "all" && transaction.transaction_type !== typeFilter) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const accountName = accountNameById.get(transaction.account_id) ?? "";
+      const categoryName = transaction.category_id
+        ? categoryNameById.get(transaction.category_id) ?? ""
+        : "";
+      const haystack = [
+        transaction.description ?? "",
+        accountName,
+        categoryName,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(normalizedSearch);
+    });
 
     return [...filtered].sort((left, right) => {
       if (sortOrder === "oldest") {
@@ -149,7 +170,7 @@ export function TransactionsPage() {
 
       return right.occurred_at.localeCompare(left.occurred_at);
     });
-  }, [sortOrder, transactions, typeFilter]);
+  }, [accountNameById, categoryNameById, searchTerm, sortOrder, transactions, typeFilter]);
 
   const summary = useMemo(() => {
     return visibleTransactions.reduce(
@@ -389,14 +410,37 @@ export function TransactionsPage() {
             <option value="amount_asc">금액 작은순</option>
           </select>
         </label>
+        <label className="field">
+          <span>검색</span>
+          <input
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="메모, 계정, 카테고리"
+            value={searchTerm}
+          />
+        </label>
       </div>
       <div className="toolbar-row">
         <p className="toolbar-copy">
           {day ? `${day} 일별 조회` : `${month} 월별 조회`}
         </p>
-        <button className="primary-button" onClick={() => void loadTransactions()} type="button">
-          {isLoading ? "새로고침 중..." : "새로고침"}
-        </button>
+        <div className="toolbar-actions">
+          <button
+            className="ghost-button ghost-button-light"
+            onClick={() => {
+              setMonth(defaultMonth);
+              setDay("");
+              setTypeFilter("all");
+              setSortOrder("latest");
+              setSearchTerm("");
+            }}
+            type="button"
+          >
+            필터 초기화
+          </button>
+          <button className="primary-button" onClick={() => void loadTransactions()} type="button">
+            {isLoading ? "새로고침 중..." : "새로고침"}
+          </button>
+        </div>
       </div>
       <div className="card-grid">
         <InfoCard
