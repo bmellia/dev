@@ -118,6 +118,8 @@ export function TransactionsPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setErrorMessage("");
+    setStatusMessage("");
 
     if (!accountId || Number(amount) <= 0) {
       setErrorMessage("계정과 1원 이상의 금액을 입력하세요.");
@@ -162,6 +164,8 @@ export function TransactionsPage() {
   };
 
   const handleEdit = (transaction: TransactionRecord) => {
+    setErrorMessage("");
+    setStatusMessage("");
     setEditingTransactionId(transaction.id);
     setOccurredAt(transaction.occurred_at.slice(0, 16));
     setTransactionType(transaction.transaction_type);
@@ -285,6 +289,14 @@ export function TransactionsPage() {
             value={day}
           />
         </label>
+      </div>
+      <div className="toolbar-row">
+        <p className="toolbar-copy">
+          {day ? `${day} 일별 조회` : `${month} 월별 조회`}
+        </p>
+        <button className="primary-button" onClick={() => void loadTransactions()} type="button">
+          {isLoading ? "새로고침 중..." : "새로고침"}
+        </button>
       </div>
       <div className="card-grid">
         <InfoCard

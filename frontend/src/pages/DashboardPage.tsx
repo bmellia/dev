@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { ApiError } from "../services/api";
 import {
   fetchAccountSummaries,
   fetchMonthlySummary,
@@ -29,24 +30,36 @@ export function DashboardPage() {
     TransactionRecord[]
   >([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadDashboard = useCallback(async () => {
+    const params = new URLSearchParams({ month: currentMonth });
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const [nextSummary, nextAccounts, nextTransactions] = await Promise.all([
+        fetchMonthlySummary(currentMonth),
+        fetchAccountSummaries(),
+        fetchTransactions(params),
+      ]);
+      setSummary(nextSummary);
+      setAccounts(nextAccounts);
+      setRecentTransactions(nextTransactions.slice(0, 5));
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "대시보드 데이터를 불러오지 못했습니다.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams({ month: currentMonth });
-
-    Promise.all([
-      fetchMonthlySummary(currentMonth),
-      fetchAccountSummaries(),
-      fetchTransactions(params),
-    ])
-      .then(([nextSummary, nextAccounts, nextTransactions]) => {
-        setSummary(nextSummary);
-        setAccounts(nextAccounts);
-        setRecentTransactions(nextTransactions.slice(0, 5));
-      })
-      .catch(() => {
-        setErrorMessage("대시보드 데이터를 불러오지 못했습니다.");
-      });
-  }, []);
+    void loadDashboard();
+  }, [loadDashboard]);
 
   return (
     <div className="page">
@@ -55,19 +68,29 @@ export function DashboardPage() {
         title="월간 대시보드"
         description="월간 수입, 지출, 순합계와 계정별 잔액, 최근 거래를 한 화면에서 확인할 수 있도록 API를 연결했습니다."
       />
+      <div className="toolbar-row">
+        <p className="toolbar-copy">{currentMonth} 기준 요약</p>
+        <button className="primary-button" onClick={() => void loadDashboard()} type="button">
+          {isLoading ? "새로고침 중..." : "새로고침"}
+        </button>
+      </div>
       <div className="card-grid">
         <InfoCard
           title="월간 요약"
           description={
-            summary
+            isLoading
+              ? "월간 요약을 불러오는 중입니다."
+              : summary
               ? `수입 ${formatCurrency(summary.income_total)}원 · 지출 ${formatCurrency(summary.expense_total)}원 · 순합계 ${formatCurrency(summary.net_total)}원`
-              : "월간 요약을 불러오는 중입니다."
+              : "표시할 월간 요약이 없습니다."
           }
         />
         <InfoCard
           title="계정 요약"
           description={
-            accounts.length > 0
+            isLoading
+              ? "계정 요약을 불러오는 중입니다."
+              : accounts.length > 0
               ? accounts
                   .slice(0, 3)
                   .map(
@@ -75,20 +98,22 @@ export function DashboardPage() {
                       `${account.name} ${formatCurrency(account.balance)}원`,
                   )
                   .join(" · ")
-              : "계정 요약을 불러오는 중입니다."
+              : "표시할 계정 요약이 없습니다."
           }
         />
         <InfoCard
           title="최근 거래"
           description={
-            recentTransactions.length > 0
+            isLoading
+              ? "최근 거래를 불러오는 중입니다."
+              : recentTransactions.length > 0
               ? recentTransactions
                   .map(
                     (transaction) =>
                       `${transaction.transaction_type === "income" ? "수입" : "지출"} ${formatCurrency(transaction.amount)}원`,
                   )
                   .join(" · ")
-              : "최근 거래를 불러오는 중입니다."
+              : "최근 거래가 없습니다."
           }
         />
       </div>

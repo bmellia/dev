@@ -165,6 +165,18 @@ code {
   color: #52606d;
 }
 
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.toolbar-copy {
+  margin: 0;
+  color: #52606d;
+}
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -400,6 +412,13 @@ code {
   .app-main,
   .app-sidebar {
     padding: 1.25rem;
+  }
+
+  .toolbar-row,
+  .sidebar-footer,
+  .transaction-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .page-hero,
