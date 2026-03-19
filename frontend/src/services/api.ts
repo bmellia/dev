@@ -5,6 +5,21 @@ type RequestOptions = Omit<RequestInit, "headers"> & {
   headers?: HeadersInit;
 };
 
+type ErrorPayload = {
+  detail?: string;
+};
+
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 
 export async function apiFetch<T>(
   path: string,
@@ -20,7 +35,18 @@ export async function apiFetch<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
+    let message = `API request failed: ${response.status}`;
+
+    try {
+      const payload = (await response.json()) as ErrorPayload;
+      if (payload.detail) {
+        message = payload.detail;
+      }
+    } catch {
+      // Keep the fallback message when the response body is empty or non-JSON.
+    }
+
+    throw new ApiError(response.status, message);
   }
 
   if (response.status === 204) {

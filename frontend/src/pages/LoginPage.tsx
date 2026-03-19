@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthProvider";
+import { ApiError } from "../services/api";
 import { InfoCard } from "../ui/InfoCard";
 import { PageHero } from "../ui/PageHero";
 
@@ -26,8 +27,12 @@ export function LoginPage() {
     try {
       await login(username, password);
       navigate("/", { replace: true });
-    } catch {
-      setErrorMessage("로그인에 실패했습니다. 계정 정보와 비밀번호를 확인하세요.");
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("로그인에 실패했습니다. 계정 정보와 비밀번호를 확인하세요.");
+      }
     } finally {
       setIsSubmitting(false);
     }

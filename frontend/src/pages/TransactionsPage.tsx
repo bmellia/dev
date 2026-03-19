@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { fetchAccounts, type Account } from "../services/accounts";
 import { fetchCategories, type Category } from "../services/categories";
+import { ApiError } from "../services/api";
 import {
   createTransaction,
   deleteTransaction,
@@ -56,8 +57,12 @@ export function TransactionsPage() {
       .then((nextTransactions) => {
         setTransactions(nextTransactions);
       })
-      .catch(() => {
-        setErrorMessage("거래 목록을 불러오지 못했습니다.");
+      .catch((error) => {
+        setErrorMessage(
+          error instanceof ApiError
+            ? error.message
+            : "거래 목록을 불러오지 못했습니다.",
+        );
       })
       .finally(() => {
         setIsLoading(false);
@@ -74,8 +79,12 @@ export function TransactionsPage() {
         setAccounts(nextAccounts.filter((account) => account.is_active));
         setCategories(nextCategories.filter((category) => category.is_active));
       })
-      .catch(() => {
-        setErrorMessage("거래 입력용 기준 데이터를 불러오지 못했습니다.");
+      .catch((error) => {
+        setErrorMessage(
+          error instanceof ApiError
+            ? error.message
+            : "거래 입력용 기준 데이터를 불러오지 못했습니다.",
+        );
       });
   }, []);
 
@@ -93,6 +102,18 @@ export function TransactionsPage() {
     () =>
       categories.filter((category) => category.category_type === transactionType),
     [categories, transactionType],
+  );
+
+  const accountNameById = useMemo(
+    () =>
+      new Map(accounts.map((account) => [account.id, account.name])),
+    [accounts],
+  );
+
+  const categoryNameById = useMemo(
+    () =>
+      new Map(categories.map((category) => [category.id, category.name])),
+    [categories],
   );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -123,8 +144,10 @@ export function TransactionsPage() {
 
       resetForm();
       await loadTransactions();
-    } catch {
-      setErrorMessage("거래 저장에 실패했습니다.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError ? error.message : "거래 저장에 실패했습니다.",
+      );
     }
   };
 
@@ -299,6 +322,13 @@ export function TransactionsPage() {
                   {transaction.transaction_type === "income" ? "수입" : "지출"}
                 </strong>
                 <p>{transaction.description || "메모 없음"}</p>
+                <p className="subtle-meta">
+                  {accountNameById.get(transaction.account_id) || `계정 #${transaction.account_id}`}
+                  {" · "}
+                  {transaction.category_id
+                    ? categoryNameById.get(transaction.category_id) || `카테고리 #${transaction.category_id}`
+                    : "카테고리 없음"}
+                </p>
               </div>
               <div className="transaction-meta">
                 <span>{transaction.occurred_at.slice(0, 10)}</span>
@@ -319,8 +349,12 @@ export function TransactionsPage() {
                           setStatusMessage("거래를 삭제했습니다.");
                           return loadTransactions();
                         })
-                        .catch(() => {
-                          setErrorMessage("거래 삭제에 실패했습니다.");
+                        .catch((error) => {
+                          setErrorMessage(
+                            error instanceof ApiError
+                              ? error.message
+                              : "거래 삭제에 실패했습니다.",
+                          );
                         })
                     }
                     type="button"

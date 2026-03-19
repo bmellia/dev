@@ -246,6 +246,10 @@ code {
   color: #64748b;
 }
 
+.subtle-meta {
+  font-size: 0.92rem;
+}
+
 .transaction-meta {
   display: grid;
   justify-items: end;

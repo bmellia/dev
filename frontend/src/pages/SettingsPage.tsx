@@ -16,6 +16,7 @@ import {
 } from "../services/categories";
 import { apiBaseUrl } from "../config";
 import { changePassword } from "../services/auth";
+import { ApiError } from "../services/api";
 import { InfoCard } from "../ui/InfoCard";
 import { PageHero } from "../ui/PageHero";
 
@@ -54,8 +55,38 @@ export function SettingsPage() {
       setAccounts(nextAccounts);
       setCategories(nextCategories);
       setErrorMessage("");
-    } catch {
-      setErrorMessage("설정 데이터를 불러오지 못했습니다.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "설정 데이터를 불러오지 못했습니다.",
+      );
+    }
+  };
+
+  const handleDeactivateAccount = async (accountId: number) => {
+    try {
+      await deactivateAccount(accountId);
+      setStatusMessage("계정을 비활성화했습니다.");
+      await loadData();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError ? error.message : "계정 비활성화에 실패했습니다.",
+      );
+    }
+  };
+
+  const handleDeactivateCategory = async (categoryId: number) => {
+    try {
+      await deactivateCategory(categoryId);
+      setStatusMessage("카테고리를 비활성화했습니다.");
+      await loadData();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "카테고리 비활성화에 실패했습니다.",
+      );
     }
   };
 
@@ -81,8 +112,10 @@ export function SettingsPage() {
       setEditingAccountId(null);
       setStatusMessage("계정을 저장했습니다.");
       await loadData();
-    } catch {
-      setErrorMessage("계정 저장에 실패했습니다.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError ? error.message : "계정 저장에 실패했습니다.",
+      );
     }
   };
 
@@ -104,8 +137,10 @@ export function SettingsPage() {
       setEditingCategoryId(null);
       setStatusMessage("카테고리를 저장했습니다.");
       await loadData();
-    } catch {
-      setErrorMessage("카테고리 저장에 실패했습니다.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError ? error.message : "카테고리 저장에 실패했습니다.",
+      );
     }
   };
 
@@ -118,8 +153,10 @@ export function SettingsPage() {
       setNewPassword("");
       setErrorMessage("");
       setStatusMessage("비밀번호를 변경했습니다.");
-    } catch {
-      setErrorMessage("비밀번호 변경에 실패했습니다.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError ? error.message : "비밀번호 변경에 실패했습니다.",
+      );
     }
   };
 
@@ -128,7 +165,7 @@ export function SettingsPage() {
       <PageHero
         eyebrow="Tickets 19-20"
         title="설정"
-        description="계정·카테고리 목록과 생성·수정·비활성화, CSV export까지 연결했습니다. 비밀번호 변경은 백엔드 API가 준비되면 이어서 붙일 수 있습니다."
+        description="계정·카테고리 목록과 생성·수정·비활성화, CSV export, 비밀번호 변경까지 한 화면에서 처리할 수 있도록 연결했습니다."
       />
       <div className="card-grid">
         <InfoCard
@@ -211,7 +248,7 @@ export function SettingsPage() {
                   </button>
                   <button
                     className="ghost-button"
-                    onClick={() => void deactivateAccount(account.id).then(loadData)}
+                    onClick={() => void handleDeactivateAccount(account.id)}
                     type="button"
                   >
                     비활성화
@@ -276,7 +313,7 @@ export function SettingsPage() {
                   </button>
                   <button
                     className="ghost-button"
-                    onClick={() => void deactivateCategory(category.id).then(loadData)}
+                    onClick={() => void handleDeactivateCategory(category.id)}
                     type="button"
                   >
                     비활성화
