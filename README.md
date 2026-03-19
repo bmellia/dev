@@ -31,6 +31,8 @@ Compose services and default ports:
 - `frontend`: `3000`
 - `db`: `3306`
 
+Host port overrides are available with `BACKEND_HOST_PORT`, `FRONTEND_HOST_PORT`, and `MARIADB_HOST_PORT`.
+
 Core files:
 - `docker-compose.yml`
 - `.env.example`
@@ -75,6 +77,15 @@ Run an end-to-end startup and in-container smoke check:
 ```bash
 /data/dev/scripts/compose-smoke-test.sh
 ```
+
+## App Flow Smoke Test
+Run a fuller MVP flow check against a fresh compose stack:
+
+```bash
+/data/dev/scripts/app-flow-smoke-test.sh
+```
+
+This validates login, account/category creation, transaction creation, dashboard summary, and CSV export.
 
 ## Optional Demo Data
 If the stack is already up and you want sample ledger data for UI review:

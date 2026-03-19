@@ -8,8 +8,11 @@ Environment variables are defined in `/data/dev/.env.example`.
 
 Important variables:
 - `BACKEND_PORT`
+- `BACKEND_HOST_PORT`
 - `FRONTEND_PORT`
+- `FRONTEND_HOST_PORT`
 - `MARIADB_PORT`
+- `MARIADB_HOST_PORT`
 - `MARIADB_DATABASE`
 - `MARIADB_USER`
 - `MARIADB_PASSWORD`
@@ -88,6 +91,21 @@ This script:
 - checks frontend HTML from inside the frontend container
 - prints recent backend/frontend logs
 - tears the stack down on exit
+
+## App Flow Smoke Test
+Use the app-flow smoke test when you want to verify the MVP ledger flow on a fresh compose stack:
+
+```bash
+/data/dev/scripts/app-flow-smoke-test.sh
+```
+
+This script additionally verifies:
+- admin login
+- account creation
+- category creation
+- transaction creation
+- monthly dashboard summary
+- CSV export contents
 
 ## Optional Demo Data
 For demo or UI review in a running compose stack:
