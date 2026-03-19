@@ -75,26 +75,46 @@ export function SettingsPage() {
 
   const handleDeactivateAccount = async (accountId: number) => {
     try {
-      await deactivateAccount(accountId);
-      setStatusMessage("계정을 비활성화했습니다.");
+      const account = accounts.find((item) => item.id === accountId);
+      if (!account) {
+        return;
+      }
+
+      if (account.is_active) {
+        await deactivateAccount(accountId);
+        setStatusMessage("계정을 비활성화했습니다.");
+      } else {
+        await updateAccount(accountId, { is_active: true });
+        setStatusMessage("계정을 다시 활성화했습니다.");
+      }
       await loadData();
     } catch (error) {
       setErrorMessage(
-        error instanceof ApiError ? error.message : "계정 비활성화에 실패했습니다.",
+        error instanceof ApiError ? error.message : "계정 상태 변경에 실패했습니다.",
       );
     }
   };
 
   const handleDeactivateCategory = async (categoryId: number) => {
     try {
-      await deactivateCategory(categoryId);
-      setStatusMessage("카테고리를 비활성화했습니다.");
+      const category = categories.find((item) => item.id === categoryId);
+      if (!category) {
+        return;
+      }
+
+      if (category.is_active) {
+        await deactivateCategory(categoryId);
+        setStatusMessage("카테고리를 비활성화했습니다.");
+      } else {
+        await updateCategory(categoryId, { is_active: true });
+        setStatusMessage("카테고리를 다시 활성화했습니다.");
+      }
       await loadData();
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
           ? error.message
-          : "카테고리 비활성화에 실패했습니다.",
+          : "카테고리 상태 변경에 실패했습니다.",
       );
     }
   };
@@ -318,7 +338,7 @@ export function SettingsPage() {
                     onClick={() => void handleDeactivateAccount(account.id)}
                     type="button"
                   >
-                    비활성화
+                    {account.is_active ? "비활성화" : "활성화"}
                   </button>
                 </div>
               </article>
@@ -396,7 +416,7 @@ export function SettingsPage() {
                     onClick={() => void handleDeactivateCategory(category.id)}
                     type="button"
                   >
-                    비활성화
+                    {category.is_active ? "비활성화" : "활성화"}
                   </button>
                 </div>
               </article>
