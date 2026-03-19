@@ -186,6 +186,19 @@ export function TransactionsPage() {
     );
   }, [visibleTransactions]);
 
+  const activeFilterLabels = [
+    day ? `일별 ${day}` : `월별 ${month}`,
+    typeFilter === "all" ? null : typeFilter === "income" ? "수입만" : "지출만",
+    sortOrder === "latest"
+      ? "최신순"
+      : sortOrder === "oldest"
+      ? "오래된순"
+      : sortOrder === "amount_desc"
+      ? "금액 큰순"
+      : "금액 작은순",
+    searchTerm.trim() ? `검색: ${searchTerm.trim()}` : null,
+  ].filter(Boolean) as string[];
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrorMessage("");
@@ -418,6 +431,37 @@ export function TransactionsPage() {
             value={searchTerm}
           />
         </label>
+      </div>
+      <div className="toolbar-row">
+        <p className="toolbar-copy">빠른 조회</p>
+        <div className="toolbar-actions">
+          <button
+            className="ghost-button ghost-button-light"
+            onClick={() => {
+              setDay(today);
+            }}
+            type="button"
+          >
+            오늘
+          </button>
+          <button
+            className="ghost-button ghost-button-light"
+            onClick={() => {
+              setMonth(defaultMonth);
+              setDay("");
+            }}
+            type="button"
+          >
+            이번 달
+          </button>
+        </div>
+      </div>
+      <div className="filter-chip-row">
+        {activeFilterLabels.map((label) => (
+          <span className="filter-chip" key={label}>
+            {label}
+          </span>
+        ))}
       </div>
       <div className="toolbar-row">
         <p className="toolbar-copy">

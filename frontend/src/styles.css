@@ -448,6 +448,22 @@ code {
   gap: 0.75rem;
 }
 
+.filter-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  color: #334155;
+  background: rgba(15, 23, 42, 0.06);
+}
+
 .guide-callout {
   display: grid;
   gap: 0.65rem;
