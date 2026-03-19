@@ -30,6 +30,11 @@ const accountTypeOptions: Account["account_type"][] = [
 ];
 
 const categoryTypeOptions: Category["category_type"][] = ["income", "expense"];
+const backupChecklist = [
+  "정기 백업은 CSV export와 MariaDB 볼륨 백업을 같이 가져가는 편이 안전합니다.",
+  "운영 전에는 .env에서 관리자 비밀번호와 세션 키를 반드시 바꾸는 것이 좋습니다.",
+  "데모 확인이 필요하면 실행 중인 compose 스택에서 seed-demo-data.sh로 샘플 거래를 넣을 수 있습니다.",
+];
 
 
 export function SettingsPage() {
@@ -188,6 +193,21 @@ export function SettingsPage() {
               CSV 다운로드
             </a>
           }
+        />
+        <InfoCard
+          title="앱 정보 / 백업"
+          description="단일 관리자용 MVP 가계부입니다."
+          body={
+            <div className="info-stack">
+              <p>거래 데이터는 CSV export로 내보내고, 운영 백업은 DB 볼륨까지 함께 보관하는 구성이 권장됩니다.</p>
+              <ul className="info-list">
+                {backupChecklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          }
+          footer={<span className="info-footnote">자세한 운영 절차는 runbook 문서를 기준으로 관리합니다.</span>}
         />
       </div>
       {statusMessage ? <p className="status-message">{statusMessage}</p> : null}
@@ -350,6 +370,32 @@ export function SettingsPage() {
               비밀번호 변경
             </button>
           </form>
+        </section>
+        <section className="data-panel">
+          <div className="data-panel-head">
+            <h3>운영 가이드</h3>
+            <p>백업 / 초기 배포</p>
+          </div>
+          <div className="info-stack">
+            <p className="empty-state">
+              현재 앱은 단일 관리자 기준 MVP입니다. 운영 전에는 기본 관리자 비밀번호와 세션 관련 환경 변수를 먼저 변경해야 합니다.
+            </p>
+            <div className="guide-callout">
+              <strong>권장 백업 순서</strong>
+              <ol className="guide-list">
+                <li>설정 화면에서 CSV export를 내려받습니다.</li>
+                <li>MariaDB 데이터 볼륨 또는 dump를 별도로 백업합니다.</li>
+                <li>복구 절차는 runbook 기준으로 주기적으로 점검합니다.</li>
+              </ol>
+            </div>
+            <div className="guide-callout">
+              <strong>데모 점검용</strong>
+              <p>
+                실행 중인 compose 환경에서 <code>/data/dev/scripts/seed-demo-data.sh</code>를
+                실행하면 샘플 거래를 채울 수 있습니다. 기존 거래가 있으면 자동으로 건너뜁니다.
+              </p>
+            </div>
+          </div>
         </section>
       </div>
     </div>
