@@ -26,6 +26,8 @@ function formatCurrency(value: number) {
 export function TransactionsPage() {
   const [month, setMonth] = useState(defaultMonth);
   const [day, setDay] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | TransactionRecord["transaction_type"]>("all");
+  const [sortOrder, setSortOrder] = useState<"latest" | "oldest" | "amount_desc" | "amount_asc">("latest");
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -115,6 +117,43 @@ export function TransactionsPage() {
       new Map(categories.map((category) => [category.id, category.name])),
     [categories],
   );
+
+  const visibleTransactions = useMemo(() => {
+    const filtered =
+      typeFilter === "all"
+        ? transactions
+        : transactions.filter((transaction) => transaction.transaction_type === typeFilter);
+
+    return [...filtered].sort((left, right) => {
+      if (sortOrder === "oldest") {
+        return left.occurred_at.localeCompare(right.occurred_at);
+      }
+
+      if (sortOrder === "amount_desc") {
+        return right.amount - left.amount;
+      }
+
+      if (sortOrder === "amount_asc") {
+        return left.amount - right.amount;
+      }
+
+      return right.occurred_at.localeCompare(left.occurred_at);
+    });
+  }, [sortOrder, transactions, typeFilter]);
+
+  const summary = useMemo(() => {
+    return visibleTransactions.reduce(
+      (accumulator, transaction) => {
+        if (transaction.transaction_type === "income") {
+          accumulator.income += transaction.amount;
+        } else {
+          accumulator.expense += transaction.amount;
+        }
+        return accumulator;
+      },
+      { income: 0, expense: 0 },
+    );
+  }, [visibleTransactions]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -289,6 +328,35 @@ export function TransactionsPage() {
             value={day}
           />
         </label>
+        <label className="field">
+          <span>유형 필터</span>
+          <select
+            onChange={(event) =>
+              setTypeFilter(event.target.value as "all" | TransactionRecord["transaction_type"])
+            }
+            value={typeFilter}
+          >
+            <option value="all">전체</option>
+            <option value="expense">지출만</option>
+            <option value="income">수입만</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>정렬</span>
+          <select
+            onChange={(event) =>
+              setSortOrder(
+                event.target.value as "latest" | "oldest" | "amount_desc" | "amount_asc",
+              )
+            }
+            value={sortOrder}
+          >
+            <option value="latest">최신순</option>
+            <option value="oldest">오래된순</option>
+            <option value="amount_desc">금액 큰순</option>
+            <option value="amount_asc">금액 작은순</option>
+          </select>
+        </label>
       </div>
       <div className="toolbar-row">
         <p className="toolbar-copy">
@@ -304,16 +372,20 @@ export function TransactionsPage() {
           description={
             isLoading
               ? "거래를 불러오는 중입니다."
-              : `${transactions.length}건 조회됨`
+              : `${visibleTransactions.length}건 표시 중`
           }
         />
         <InfoCard
-          title="거래 생성"
-          description="POST /transactions"
+          title="수입 합계"
+          description={`${formatCurrency(summary.income)}원`}
         />
         <InfoCard
-          title="거래 수정 및 삭제"
-          description="PATCH /transactions/:id, DELETE /transactions/:id"
+          title="지출 합계"
+          description={`${formatCurrency(summary.expense)}원`}
+        />
+        <InfoCard
+          title="순합계"
+          description={`${formatCurrency(summary.income - summary.expense)}원`}
         />
       </div>
       {statusMessage ? <p className="status-message">{statusMessage}</p> : null}
@@ -324,10 +396,10 @@ export function TransactionsPage() {
           <p>{day ? `${day} 기준` : `${month} 기준`}</p>
         </div>
         <div className="transaction-list">
-          {transactions.length === 0 && !isLoading ? (
+          {visibleTransactions.length === 0 && !isLoading ? (
             <p className="empty-state">표시할 거래가 없습니다.</p>
           ) : null}
-          {transactions.map((transaction) => (
+          {visibleTransactions.map((transaction) => (
             <article className="transaction-row" key={transaction.id}>
               <div>
                 <strong>
