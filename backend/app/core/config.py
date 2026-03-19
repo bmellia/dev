@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     session_cookie_secure: bool = False
     session_cookie_samesite: str = "lax"
     session_cookie_max_age: int = 60 * 60 * 24 * 7
+    app_log_dir: str = "/data/log/app"
+    app_log_level: str = "INFO"
 
     @property
     def sqlalchemy_database_uri(self) -> str:

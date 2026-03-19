@@ -1,8 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+import { fetchAccounts, type Account } from "../services/accounts";
+import { fetchCategories, type Category } from "../services/categories";
 import {
+  createTransaction,
+  deleteTransaction,
   fetchTransactions,
   type TransactionRecord,
+  updateTransaction,
 } from "../services/transactions";
 import { InfoCard } from "../ui/InfoCard";
 import { PageHero } from "../ui/PageHero";
@@ -21,10 +26,22 @@ export function TransactionsPage() {
   const [month, setMonth] = useState(defaultMonth);
   const [day, setDay] = useState("");
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [editingTransactionId, setEditingTransactionId] = useState<number | null>(null);
+  const [occurredAt, setOccurredAt] = useState(`${today}T09:00`);
+  const [transactionType, setTransactionType] = useState<
+    TransactionRecord["transaction_type"]
+  >("expense");
+  const [accountId, setAccountId] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const loadTransactions = async () => {
     const params = new URLSearchParams();
     if (day) {
       params.set("day", day);
@@ -45,15 +62,185 @@ export function TransactionsPage() {
       .finally(() => {
         setIsLoading(false);
       });
+  };
+
+  useEffect(() => {
+    void loadTransactions();
   }, [day, month]);
+
+  useEffect(() => {
+    Promise.all([fetchAccounts(), fetchCategories()])
+      .then(([nextAccounts, nextCategories]) => {
+        setAccounts(nextAccounts.filter((account) => account.is_active));
+        setCategories(nextCategories.filter((category) => category.is_active));
+      })
+      .catch(() => {
+        setErrorMessage("거래 입력용 기준 데이터를 불러오지 못했습니다.");
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!accountId && accounts.length > 0) {
+      setAccountId(String(accounts[0].id));
+    }
+  }, [accountId, accounts]);
+
+  useEffect(() => {
+    setCategoryId("");
+  }, [transactionType]);
+
+  const filteredCategories = useMemo(
+    () =>
+      categories.filter((category) => category.category_type === transactionType),
+    [categories, transactionType],
+  );
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!accountId || Number(amount) <= 0) {
+      setErrorMessage("계정과 1원 이상의 금액을 입력하세요.");
+      return;
+    }
+
+    const payload = {
+      occurred_at: `${occurredAt}:00`,
+      transaction_type: transactionType,
+      account_id: Number(accountId),
+      category_id: categoryId ? Number(categoryId) : null,
+      amount: Number(amount),
+      description: description.trim() || null,
+    };
+
+    try {
+      if (editingTransactionId === null) {
+        await createTransaction(payload);
+        setStatusMessage("거래를 추가했습니다.");
+      } else {
+        await updateTransaction(editingTransactionId, payload);
+        setStatusMessage("거래를 수정했습니다.");
+      }
+
+      resetForm();
+      await loadTransactions();
+    } catch {
+      setErrorMessage("거래 저장에 실패했습니다.");
+    }
+  };
+
+  const resetForm = () => {
+    setEditingTransactionId(null);
+    setOccurredAt(`${today}T09:00`);
+    setTransactionType("expense");
+    setAccountId(accounts[0]?.id ? String(accounts[0].id) : "");
+    setCategoryId("");
+    setAmount("");
+    setDescription("");
+  };
+
+  const handleEdit = (transaction: TransactionRecord) => {
+    setEditingTransactionId(transaction.id);
+    setOccurredAt(transaction.occurred_at.slice(0, 16));
+    setTransactionType(transaction.transaction_type);
+    setAccountId(String(transaction.account_id));
+    setCategoryId(transaction.category_id ? String(transaction.category_id) : "");
+    setAmount(String(transaction.amount));
+    setDescription(transaction.description || "");
+  };
 
   return (
     <div className="page">
       <PageHero
-        eyebrow="Ticket 17"
+        eyebrow="Tickets 17-18"
         title="거래 목록과 입력 흐름"
-        description="월별 또는 일별 기준으로 거래를 조회할 수 있는 목록 UI를 연결했습니다. 다음 단계에서는 생성/수정 폼을 이 화면에 결합하면 됩니다."
+        description="월별 또는 일별 조회와 함께 거래 생성·수정·삭제를 같은 화면에서 처리할 수 있도록 구성했습니다."
       />
+      <form className="data-panel stack-form" onSubmit={handleSubmit}>
+        <div className="data-panel-head">
+          <h3>{editingTransactionId ? "거래 수정" : "거래 추가"}</h3>
+          <p>{editingTransactionId ? "선택된 거래 편집 중" : "새 거래 입력"}</p>
+        </div>
+        <div className="settings-grid">
+          <label className="field">
+            <span>거래 일시</span>
+            <input
+              onChange={(event) => setOccurredAt(event.target.value)}
+              type="datetime-local"
+              value={occurredAt}
+            />
+          </label>
+          <label className="field">
+            <span>유형</span>
+            <select
+              onChange={(event) =>
+                setTransactionType(
+                  event.target.value as TransactionRecord["transaction_type"],
+                )
+              }
+              value={transactionType}
+            >
+              <option value="expense">expense</option>
+              <option value="income">income</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>계정</span>
+            <select
+              onChange={(event) => setAccountId(event.target.value)}
+              value={accountId}
+            >
+              <option value="">선택</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>카테고리</span>
+            <select
+              onChange={(event) => setCategoryId(event.target.value)}
+              value={categoryId}
+            >
+              <option value="">선택 안 함</option>
+              {filteredCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>금액</span>
+            <input
+              min="1"
+              onChange={(event) => setAmount(event.target.value)}
+              type="number"
+              value={amount}
+            />
+          </label>
+          <label className="field">
+            <span>메모</span>
+            <input
+              onChange={(event) => setDescription(event.target.value)}
+              value={description}
+            />
+          </label>
+        </div>
+        <div className="action-row">
+          <button className="primary-button" type="submit">
+            {editingTransactionId ? "거래 수정" : "거래 추가"}
+          </button>
+          <button
+            className="ghost-button"
+            onClick={resetForm}
+            type="button"
+          >
+            초기화
+          </button>
+        </div>
+      </form>
       <div className="filter-panel">
         <label className="field">
           <span>월 조회</span>
@@ -94,6 +281,7 @@ export function TransactionsPage() {
           description="PATCH /transactions/:id, DELETE /transactions/:id"
         />
       </div>
+      {statusMessage ? <p className="status-message">{statusMessage}</p> : null}
       {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
       <section className="data-panel">
         <div className="data-panel-head">
@@ -115,6 +303,31 @@ export function TransactionsPage() {
               <div className="transaction-meta">
                 <span>{transaction.occurred_at.slice(0, 10)}</span>
                 <strong>{formatCurrency(transaction.amount)}원</strong>
+                <div className="action-row">
+                  <button
+                    className="ghost-button"
+                    onClick={() => handleEdit(transaction)}
+                    type="button"
+                  >
+                    수정
+                  </button>
+                  <button
+                    className="ghost-button"
+                    onClick={() =>
+                      void deleteTransaction(transaction.id)
+                        .then(() => {
+                          setStatusMessage("거래를 삭제했습니다.");
+                          return loadTransactions();
+                        })
+                        .catch(() => {
+                          setErrorMessage("거래 삭제에 실패했습니다.");
+                        })
+                    }
+                    type="button"
+                  >
+                    삭제
+                  </button>
+                </div>
               </div>
             </article>
           ))}

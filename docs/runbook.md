@@ -19,6 +19,8 @@ Important variables:
 - `SESSION_COOKIE_SECURE`
 - `SESSION_COOKIE_SAMESITE`
 - `SESSION_COOKIE_MAX_AGE`
+- `APP_LOG_DIR`
+- `APP_LOG_LEVEL`
 - `VITE_API_BASE_URL`
 
 `VITE_API_BASE_URL` can remain empty for local Vite proxy usage. In reverse-proxy or split-origin deployments, set it explicitly.
@@ -75,6 +77,9 @@ The following are out of scope for MVP:
 
 ## Operational Notes
 - Codex session logs are stored under `/data/log/`.
-- Application runtime logging hooks are not yet formalized in code.
+- Application runtime logs are intended for `/data/log/app/`.
+- Backend currently writes to stdout and, when available, to `/data/log/app/backend.log`.
+- `/data/log/app/` is for application/runtime logs.
+- `/data/log/` and `latest-job.log` are for Codex operational/session logs and should stay separate from app logs.
 - Current frontend uses Vite proxy for local API access.
-- Current backend validation has been done in isolated Docker runtimes and not yet through full compose smoke tests.
+- Current backend validation has been done in isolated Docker runtimes and compose startup/log checks.

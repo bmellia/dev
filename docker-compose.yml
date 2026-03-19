@@ -12,8 +12,11 @@ services:
       MARIADB_DATABASE: ${MARIADB_DATABASE:-ledger}
       MARIADB_USER: ${MARIADB_USER:-ledger}
       MARIADB_PASSWORD: ${MARIADB_PASSWORD:-change-me}
+      APP_LOG_DIR: ${APP_LOG_DIR:-/data/log/app}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
     volumes:
       - ./backend:/app
+      - /data/log/app:/data/log/app
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:

@@ -7,6 +7,10 @@ from app.api.dashboard import router as dashboard_router
 from app.api.exports import router as exports_router
 from app.api.transactions import router as transactions_router
 from app.core.config import settings
+from app.core.logging import setup_logging
+
+
+setup_logging()
 
 app = FastAPI(title="Self-hosted Web Household Ledger API")
 app.include_router(auth_router)
