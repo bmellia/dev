@@ -57,16 +57,14 @@ export function LoginPage() {
           }
         />
         <InfoCard
-          title="빠른 시작"
-          description="기본 관리자 계정으로 바로 로그인할 수 있습니다."
+          title="로그인 안내"
+          description="관리자 계정으로 로그인한 뒤 대시보드로 이동합니다."
           body={
             <div className="info-stack">
               <p>
-                기본 계정은 <code>admin</code> / <code>1234*</code> 입니다.
+                인증 정보는 배포 환경 설정에 따라 달라질 수 있습니다.
               </p>
-              <p>
-                로그인 후에는 설정 화면에서 비밀번호를 먼저 변경하는 편이 안전합니다.
-              </p>
+              <p>로그인 후에는 설정 화면에서 비밀번호를 변경할 수 있습니다.</p>
             </div>
           }
         />
@@ -89,16 +87,6 @@ export function LoginPage() {
             />
           </label>
           {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
-          <button
-            className="ghost-button ghost-button-light"
-            onClick={() => {
-              setUsername("admin");
-              setPassword("1234*");
-            }}
-            type="button"
-          >
-            데모 비밀번호 채우기
-          </button>
           <button className="primary-button" disabled={isSubmitting} type="submit">
             {isSubmitting ? "로그인 중..." : "로그인"}
           </button>
