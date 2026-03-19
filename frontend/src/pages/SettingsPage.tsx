@@ -50,6 +50,10 @@ export function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const activeAccounts = accounts.filter((account) => account.is_active);
+  const inactiveAccounts = accounts.filter((account) => !account.is_active);
+  const activeCategories = categories.filter((category) => category.is_active);
+  const inactiveCategories = categories.filter((category) => !category.is_active);
 
   const loadData = async () => {
     try {
@@ -172,14 +176,44 @@ export function SettingsPage() {
         title="설정"
         description="계정·카테고리 목록과 생성·수정·비활성화, CSV export, 비밀번호 변경까지 한 화면에서 처리할 수 있도록 연결했습니다."
       />
+      <div className="toolbar-row">
+        <p className="toolbar-copy">운영 관리와 백업 작업을 한곳에서 정리합니다.</p>
+        <button className="primary-button" onClick={() => void loadData()} type="button">
+          새로고침
+        </button>
+      </div>
       <div className="card-grid">
         <InfoCard
           title="계정 관리"
           description={`${accounts.length}개 계정`}
+          body={
+            <div className="compact-list">
+              <div className="compact-row">
+                <span>활성</span>
+                <strong>{activeAccounts.length}개</strong>
+              </div>
+              <div className="compact-row">
+                <span>비활성</span>
+                <strong>{inactiveAccounts.length}개</strong>
+              </div>
+            </div>
+          }
         />
         <InfoCard
           title="카테고리 관리"
           description={`${categories.length}개 카테고리`}
+          body={
+            <div className="compact-list">
+              <div className="compact-row">
+                <span>활성</span>
+                <strong>{activeCategories.length}개</strong>
+              </div>
+              <div className="compact-row">
+                <span>비활성</span>
+                <strong>{inactiveCategories.length}개</strong>
+              </div>
+            </div>
+          }
         />
         <InfoCard
           title="CSV Export"
@@ -244,6 +278,19 @@ export function SettingsPage() {
             <button className="primary-button" type="submit">
               {editingAccountId ? "계정 수정" : "계정 추가"}
             </button>
+            {editingAccountId ? (
+              <button
+                className="ghost-button ghost-button-light"
+                onClick={() => {
+                  setEditingAccountId(null);
+                  setAccountName("");
+                  setAccountType("bank");
+                }}
+                type="button"
+              >
+                수정 취소
+              </button>
+            ) : null}
           </form>
           <div className="transaction-list">
             {accounts.map((account) => (
@@ -309,6 +356,19 @@ export function SettingsPage() {
             <button className="primary-button" type="submit">
               {editingCategoryId ? "카테고리 수정" : "카테고리 추가"}
             </button>
+            {editingCategoryId ? (
+              <button
+                className="ghost-button ghost-button-light"
+                onClick={() => {
+                  setEditingCategoryId(null);
+                  setCategoryName("");
+                  setCategoryType("expense");
+                }}
+                type="button"
+              >
+                수정 취소
+              </button>
+            ) : null}
           </form>
           <div className="transaction-list">
             {categories.map((category) => (

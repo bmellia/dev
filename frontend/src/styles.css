@@ -517,6 +517,11 @@ code {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.ghost-button-light {
+  color: #334155;
+  background: rgba(15, 23, 42, 0.06);
+}
+
 .form-error {
   margin: 0;
   color: #b91c1c;
