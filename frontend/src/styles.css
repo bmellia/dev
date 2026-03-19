@@ -365,6 +365,41 @@ code {
   margin-bottom: 1rem;
 }
 
+.quick-amount-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.quick-amount-button {
+  color: #334155;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.transaction-preview {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1rem;
+  background: rgba(248, 250, 252, 0.86);
+}
+
+.transaction-preview strong,
+.transaction-preview p {
+  margin: 0;
+}
+
+.transaction-preview p {
+  color: #52606d;
+}
+
+.transaction-preview-amount {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
 .action-row {
   display: flex;
   gap: 0.5rem;

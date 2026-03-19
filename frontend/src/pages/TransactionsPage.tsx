@@ -16,6 +16,10 @@ import { PageHero } from "../ui/PageHero";
 
 const today = new Date().toISOString().slice(0, 10);
 const defaultMonth = today.slice(0, 7);
+const quickAmountOptions = {
+  expense: [10000, 30000, 50000, 100000],
+  income: [100000, 500000, 1000000, 3000000],
+} as const;
 
 
 function formatCurrency(value: number) {
@@ -117,6 +121,11 @@ export function TransactionsPage() {
       new Map(categories.map((category) => [category.id, category.name])),
     [categories],
   );
+  const selectedAccountName =
+    accounts.find((account) => String(account.id) === accountId)?.name ?? "미선택";
+  const selectedCategoryName =
+    filteredCategories.find((category) => String(category.id) === categoryId)?.name ??
+    "선택 안 함";
 
   const visibleTransactions = useMemo(() => {
     const filtered =
@@ -294,6 +303,28 @@ export function TransactionsPage() {
             />
           </label>
         </div>
+        <div className="quick-amount-row">
+          {quickAmountOptions[transactionType].map((value) => (
+            <button
+              className="ghost-button quick-amount-button"
+              key={value}
+              onClick={() => setAmount(String(value))}
+              type="button"
+            >
+              {formatCurrency(value)}원
+            </button>
+          ))}
+        </div>
+        <div className="transaction-preview">
+          <strong>{editingTransactionId ? "수정 미리보기" : "입력 미리보기"}</strong>
+          <p>
+            {transactionType === "income" ? "수입" : "지출"} · {selectedAccountName} ·{" "}
+            {selectedCategoryName}
+          </p>
+          <p className="transaction-preview-amount">
+            {amount ? `${formatCurrency(Number(amount))}원` : "금액 미입력"}
+          </p>
+        </div>
         <div className="action-row">
           <button className="primary-button" type="submit">
             {editingTransactionId ? "거래 수정" : "거래 추가"}
@@ -303,7 +334,7 @@ export function TransactionsPage() {
             onClick={resetForm}
             type="button"
           >
-            초기화
+            {editingTransactionId ? "수정 취소" : "초기화"}
           </button>
         </div>
       </form>
