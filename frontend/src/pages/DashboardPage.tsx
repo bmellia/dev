@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { ApiError } from "../services/api";
 import {
@@ -76,9 +77,17 @@ export function DashboardPage() {
       />
       <div className="toolbar-row">
         <p className="toolbar-copy">{currentMonth} 기준 요약</p>
-        <button className="primary-button" onClick={() => void loadDashboard()} type="button">
-          {isLoading ? "새로고침 중..." : "새로고침"}
-        </button>
+        <div className="toolbar-actions">
+          <Link className="ghost-link" to="/transactions">
+            거래 입력
+          </Link>
+          <Link className="ghost-link" to="/settings">
+            설정 이동
+          </Link>
+          <button className="primary-button" onClick={() => void loadDashboard()} type="button">
+            {isLoading ? "새로고침 중..." : "새로고침"}
+          </button>
+        </div>
       </div>
       <div className="card-grid">
         <InfoCard
@@ -158,6 +167,20 @@ export function DashboardPage() {
                 ))}
               </div>
             ) : null
+          }
+        />
+        <InfoCard
+          title="빠른 작업"
+          description="거래 입력과 환경 정리로 바로 이동합니다."
+          body={
+            <div className="quick-link-grid">
+              <Link className="primary-link" to="/transactions">
+                거래 화면 열기
+              </Link>
+              <Link className="ghost-link ghost-link-block" to="/settings">
+                계정 / 카테고리 정리
+              </Link>
+            </div>
           }
         />
       </div>
