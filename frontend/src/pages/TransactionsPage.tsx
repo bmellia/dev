@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 
 import { fetchAccounts, type Account } from "../services/accounts";
 import { fetchCategories, type Category } from "../services/categories";
@@ -428,7 +429,17 @@ export function TransactionsPage() {
         </div>
         <div className="transaction-list">
           {visibleTransactions.length === 0 && !isLoading ? (
-            <p className="empty-state">표시할 거래가 없습니다.</p>
+            <div className="empty-state-block">
+              <p className="empty-state">표시할 거래가 없습니다.</p>
+              <p className="empty-state">
+                아직 기준 데이터가 없다면 설정에서 계정과 카테고리를 먼저 추가하세요.
+              </p>
+              <div className="quick-link-grid">
+                <Link className="ghost-link ghost-link-block" to="/settings">
+                  설정으로 이동
+                </Link>
+              </div>
+            </div>
           ) : null}
           {visibleTransactions.map((transaction) => (
             <article className="transaction-row" key={transaction.id}>

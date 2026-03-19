@@ -140,6 +140,13 @@ export function DashboardPage() {
                   </div>
                 ))}
               </div>
+            ) : !isLoading ? (
+              <div className="empty-state-block">
+                <p className="empty-state">아직 계정이 없습니다.</p>
+                <Link className="ghost-link ghost-link-block" to="/settings">
+                  계정 만들러 가기
+                </Link>
+              </div>
             ) : null
           }
         />
@@ -165,6 +172,13 @@ export function DashboardPage() {
                     <strong>{formatCurrency(transaction.amount)}원</strong>
                   </div>
                 ))}
+              </div>
+            ) : !isLoading ? (
+              <div className="empty-state-block">
+                <p className="empty-state">아직 최근 거래가 없습니다.</p>
+                <Link className="primary-link" to="/transactions">
+                  첫 거래 입력하기
+                </Link>
               </div>
             ) : null
           }
