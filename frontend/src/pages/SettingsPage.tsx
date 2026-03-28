@@ -30,16 +30,33 @@ const accountTypeOptions: Account["account_type"][] = [
 ];
 
 const categoryTypeOptions: Category["category_type"][] = ["income", "expense"];
-const backupChecklist = [
-  "정기 백업은 CSV export와 MariaDB 볼륨 백업을 같이 가져가는 편이 안전합니다.",
-  "운영 전에는 .env에서 관리자 비밀번호와 세션 키를 반드시 바꾸는 것이 좋습니다.",
-  "데모 확인이 필요하면 실행 중인 compose 스택에서 seed-demo-data.sh로 샘플 거래를 넣을 수 있습니다.",
-];
 
+function formatAccountTypeLabel(type: Account["account_type"]) {
+  switch (type) {
+    case "cash":
+      return "현금";
+    case "bank":
+      return "은행";
+    case "card":
+      return "카드";
+    case "ewallet":
+      return "전자지갑";
+    case "liability":
+      return "부채";
+    default:
+      return type;
+  }
+}
+
+function formatCategoryTypeLabel(type: Category["category_type"]) {
+  return type === "income" ? "수입" : "지출";
+}
 
 export function SettingsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [lastBackupAt, setLastBackupAt] = useState("");
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [accountType, setAccountType] = useState<Account["account_type"]>("bank");
   const [editingAccountId, setEditingAccountId] = useState<number | null>(null);
@@ -63,6 +80,7 @@ export function SettingsPage() {
       ]);
       setAccounts(nextAccounts);
       setCategories(nextCategories);
+      setLastBackupAt(new Date().toLocaleString("ko-KR"));
       setErrorMessage("");
     } catch (error) {
       setErrorMessage(
@@ -120,8 +138,18 @@ export function SettingsPage() {
   };
 
   useEffect(() => {
+    setBiometricEnabled(window.localStorage.getItem("equity-ledger-biometric") === "true");
     void loadData();
   }, []);
+
+  const toggleBiometric = () => {
+    const nextValue = !biometricEnabled;
+    setBiometricEnabled(nextValue);
+    window.localStorage.setItem("equity-ledger-biometric", String(nextValue));
+    setStatusMessage(
+      nextValue ? "생체 인증 선호 설정을 켰습니다." : "생체 인증 선호 설정을 껐습니다.",
+    );
+  };
 
   const handleAccountSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -192,9 +220,9 @@ export function SettingsPage() {
   return (
     <div className="page">
       <PageHero
-        eyebrow="Tickets 19-20"
-        title="설정"
-        description="계정·카테고리 목록과 생성·수정·비활성화, CSV export, 비밀번호 변경까지 한 화면에서 처리할 수 있도록 연결했습니다."
+        eyebrow="설정"
+        title="운영 관리"
+        description="프로필, 기준 데이터, 백업, 보안 설정을 한 화면에서 정리하는 관리 콘솔입니다."
       />
       <div className="toolbar-row">
         <p className="toolbar-copy">운영 관리와 백업 작업을 한곳에서 정리합니다.</p>
@@ -204,64 +232,63 @@ export function SettingsPage() {
       </div>
       <div className="card-grid">
         <InfoCard
-          title="계정 관리"
-          description={`${accounts.length}개 계정`}
+          title="프로필"
+          description="단일 관리자"
           body={
-            <div className="compact-list">
-              <div className="compact-row">
-                <span>활성</span>
-                <strong>{activeAccounts.length}개</strong>
-              </div>
-              <div className="compact-row">
-                <span>비활성</span>
-                <strong>{inactiveAccounts.length}개</strong>
+            <div className="profile-card">
+              <div className="profile-avatar">관</div>
+              <div className="profile-copy">
+                <strong>{accounts.length > 0 ? "운영 워크스페이스" : "초기 설정 단계"}</strong>
+                <p>{biometricEnabled ? "생체 인증 선호 켜짐" : "생체 인증 선호 꺼짐"}</p>
               </div>
             </div>
           }
         />
         <InfoCard
-          title="카테고리 관리"
-          description={`${categories.length}개 카테고리`}
+          title="계정"
+          description={`${accounts.length}개`}
           body={
             <div className="compact-list">
               <div className="compact-row">
                 <span>활성</span>
-                <strong>{activeCategories.length}개</strong>
+                <strong>{activeAccounts.length}</strong>
               </div>
               <div className="compact-row">
-                <span>비활성</span>
-                <strong>{inactiveCategories.length}개</strong>
+                <span>보관</span>
+                <strong>{inactiveAccounts.length}</strong>
               </div>
             </div>
           }
         />
         <InfoCard
-          title="CSV Export"
-          description="현재 거래 데이터를 UTF-8 CSV로 내려받습니다."
+          title="카테고리"
+          description={`${categories.length}개`}
+          body={
+            <div className="compact-list">
+              <div className="compact-row">
+                <span>활성</span>
+                <strong>{activeCategories.length}</strong>
+              </div>
+              <div className="compact-row">
+                <span>보관</span>
+                <strong>{inactiveCategories.length}</strong>
+              </div>
+            </div>
+          }
+        />
+        <InfoCard
+          title="데이터 및 백업"
+          description={lastBackupAt ? `마지막 새로고침: ${lastBackupAt}` : "백업 상태 미확인"}
           footer={
             <a
               className="primary-link"
               href={`${apiBaseUrl}/exports/transactions.csv`}
+              rel="noreferrer"
               target="_blank"
             >
-              CSV 다운로드
+              CSV 내보내기
             </a>
           }
-        />
-        <InfoCard
-          title="앱 정보 / 백업"
-          description="단일 관리자용 MVP 가계부입니다."
-          body={
-            <div className="info-stack">
-              <p>거래 데이터는 CSV export로 내보내고, 운영 백업은 DB 볼륨까지 함께 보관하는 구성이 권장됩니다.</p>
-              <ul className="info-list">
-                {backupChecklist.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          }
-          footer={<span className="info-footnote">자세한 운영 절차는 runbook 문서를 기준으로 관리합니다.</span>}
         />
       </div>
       {statusMessage ? <p className="status-message">{statusMessage}</p> : null}
@@ -274,7 +301,7 @@ export function SettingsPage() {
           </div>
           <form className="stack-form" onSubmit={handleAccountSubmit}>
             <label className="field">
-              <span>계정명</span>
+              <span>Account name</span>
               <input
                 onChange={(event) => setAccountName(event.target.value)}
                 value={accountName}
@@ -290,7 +317,7 @@ export function SettingsPage() {
               >
                 {accountTypeOptions.map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {formatAccountTypeLabel(option)}
                   </option>
                 ))}
               </select>
@@ -308,7 +335,7 @@ export function SettingsPage() {
                 }}
                 type="button"
               >
-                수정 취소
+                취소
               </button>
             ) : null}
           </form>
@@ -318,7 +345,7 @@ export function SettingsPage() {
                 <div>
                   <strong>{account.name}</strong>
                   <p>
-                    {account.account_type} · {account.is_active ? "활성" : "비활성"}
+                    {formatAccountTypeLabel(account.account_type)} · {account.is_active ? "활성" : "보관"}
                   </p>
                 </div>
                 <div className="action-row">
@@ -338,7 +365,7 @@ export function SettingsPage() {
                     onClick={() => void handleDeactivateAccount(account.id)}
                     type="button"
                   >
-                    {account.is_active ? "비활성화" : "활성화"}
+                    {account.is_active ? "보관" : "복원"}
                   </button>
                 </div>
               </article>
@@ -368,7 +395,7 @@ export function SettingsPage() {
               >
                 {categoryTypeOptions.map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {formatCategoryTypeLabel(option)}
                   </option>
                 ))}
               </select>
@@ -386,7 +413,7 @@ export function SettingsPage() {
                 }}
                 type="button"
               >
-                수정 취소
+                취소
               </button>
             ) : null}
           </form>
@@ -396,7 +423,7 @@ export function SettingsPage() {
                 <div>
                   <strong>{category.name}</strong>
                   <p>
-                    {category.category_type} · {category.is_active ? "활성" : "비활성"}
+                    {formatCategoryTypeLabel(category.category_type)} · {category.is_active ? "활성" : "보관"}
                   </p>
                 </div>
                 <div className="action-row">
@@ -416,7 +443,7 @@ export function SettingsPage() {
                     onClick={() => void handleDeactivateCategory(category.id)}
                     type="button"
                   >
-                    {category.is_active ? "비활성화" : "활성화"}
+                    {category.is_active ? "보관" : "복원"}
                   </button>
                 </div>
               </article>
@@ -425,8 +452,21 @@ export function SettingsPage() {
         </section>
         <section className="data-panel">
           <div className="data-panel-head">
-            <h3>비밀번호 변경</h3>
-            <p>관리자 세션 유지</p>
+            <h3>보안</h3>
+            <p>비밀번호와 기기 선호 설정</p>
+          </div>
+          <div className="security-toggle">
+            <div>
+              <strong>생체 인증</strong>
+              <p className="toolbar-copy">로컬 선호 설정만 저장합니다.</p>
+            </div>
+            <button
+              className={biometricEnabled ? "primary-button" : "ghost-button ghost-button-light"}
+              onClick={toggleBiometric}
+              type="button"
+            >
+              {biometricEnabled ? "켜짐" : "꺼짐"}
+            </button>
           </div>
           <form className="stack-form" onSubmit={handlePasswordSubmit}>
             <label className="field">
@@ -454,22 +494,22 @@ export function SettingsPage() {
         <section className="data-panel">
           <div className="data-panel-head">
             <h3>운영 가이드</h3>
-            <p>백업 / 초기 배포</p>
+            <p>백업 / 배포</p>
           </div>
           <div className="info-stack">
             <p className="empty-state">
-              현재 앱은 단일 관리자 기준 MVP입니다. 운영 전에는 기본 관리자 비밀번호와 세션 관련 환경 변수를 먼저 변경해야 합니다.
+              단일 관리자 운영 기준입니다. 배포 전에 관리자 비밀번호와 세션 환경 변수를 먼저 점검하세요.
             </p>
             <div className="guide-callout">
               <strong>권장 백업 순서</strong>
               <ol className="guide-list">
-                <li>설정 화면에서 CSV export를 내려받습니다.</li>
-                <li>MariaDB 데이터 볼륨 또는 dump를 별도로 백업합니다.</li>
-                <li>복구 절차는 runbook 기준으로 주기적으로 점검합니다.</li>
+                <li>이 화면에서 거래 CSV를 먼저 내려받습니다.</li>
+                <li>MariaDB 볼륨 또는 dump를 별도로 백업합니다.</li>
+                <li>복구 절차를 runbook 기준으로 주기적으로 점검합니다.</li>
               </ol>
             </div>
             <div className="guide-callout">
-              <strong>데모 점검용</strong>
+              <strong>데모 데이터</strong>
               <p>
                 실행 중인 compose 환경에서 <code>/data/dev/scripts/seed-demo-data.sh</code>를
                 실행하면 샘플 거래를 채울 수 있습니다. 기존 거래가 있으면 자동으로 건너뜁니다.

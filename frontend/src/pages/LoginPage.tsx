@@ -3,14 +3,22 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError } from "../services/api";
-import { InfoCard } from "../ui/InfoCard";
-import { PageHero } from "../ui/PageHero";
+
+const titleTransforms = [
+  "translateY(-2px) rotate(-3deg)",
+  "translateY(1px) rotate(2deg)",
+  "translateY(-1px) rotate(-1.5deg)",
+  "translateY(2px) rotate(2.4deg)",
+  "translateY(-3px) rotate(-2deg)",
+  "translateY(1px) rotate(1.3deg)",
+  "translateY(-1px) rotate(-1deg)",
+];
 
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { isLoading, login, session } = useAuth();
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,55 +48,58 @@ export function LoginPage() {
 
   return (
     <div className="page page-login">
-      <PageHero
-        eyebrow="Ticket 15"
-        title="관리자 로그인"
-        description="세션 쿠키 기반 로그인 흐름을 연결했습니다. 로그인 성공 시 대시보드로 이동하고, 실패 시 오류 메시지를 보여줍니다."
-      />
-      <div className="login-grid">
-        <InfoCard
-          title="연결 API"
-          description="POST /auth/login, POST /auth/logout, GET /auth/me"
-          body={
-            <div className="info-stack">
-              <p>브라우저 세션 쿠키를 기준으로 인증 상태를 유지합니다.</p>
-              <code>credentials: include</code>
-            </div>
-          }
-        />
-        <InfoCard
-          title="로그인 안내"
-          description="관리자 계정으로 로그인한 뒤 대시보드로 이동합니다."
-          body={
-            <div className="info-stack">
-              <p>
-                인증 정보는 배포 환경 설정에 따라 달라질 수 있습니다.
-              </p>
-              <p>로그인 후에는 설정 화면에서 비밀번호를 변경할 수 있습니다.</p>
-            </div>
-          }
-        />
-        <form className="login-form" onSubmit={handleSubmit}>
-          <label className="field">
-            <span>관리자 아이디</span>
-            <input
-              autoComplete="username"
-              onChange={(event) => setUsername(event.target.value)}
-              value={username}
-            />
-          </label>
-          <label className="field">
-            <span>비밀번호</span>
-            <input
-              autoComplete="current-password"
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              value={password}
-            />
-          </label>
+      <div className="login-layout">
+        <h1 aria-label="돈 세는 가계부" className="login-title">
+          <span className="login-title-character" style={{ transform: titleTransforms[0] }}>
+            돈
+          </span>
+          <span className="login-title-character" style={{ transform: titleTransforms[1] }}>
+            {" "}
+          </span>
+          <span className="login-title-character" style={{ transform: titleTransforms[2] }}>
+            <span className="login-title-correction">
+              <span className="login-title-correction-base">새</span>
+              <span aria-hidden="true" className="login-title-correction-mark" />
+              <span className="login-title-correction-text">세</span>
+            </span>
+          </span>
+          <span className="login-title-character" style={{ transform: titleTransforms[3] }}>
+            는
+          </span>
+          <span className="login-title-character" style={{ transform: titleTransforms[4] }}>
+            {" "}
+          </span>
+          <span className="login-title-character" style={{ transform: titleTransforms[5] }}>
+            가
+          </span>
+          <span className="login-title-character" style={{ transform: titleTransforms[6] }}>
+            계
+          </span>
+          <span className="login-title-character" style={{ transform: titleTransforms[0] }}>
+            부
+          </span>
+        </h1>
+        <form className="login-form login-card" onSubmit={handleSubmit}>
+          <input
+            aria-label="ID"
+            autoComplete="username"
+            className="login-input"
+            onChange={(event) => setUsername(event.target.value)}
+            placeholder="ID"
+            value={username}
+          />
+          <input
+            aria-label="PW"
+            autoComplete="current-password"
+            className="login-input"
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="PW"
+            type="password"
+            value={password}
+          />
           {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
           <button className="primary-button" disabled={isSubmitting} type="submit">
-            {isSubmitting ? "로그인 중..." : "로그인"}
+            {isSubmitting ? "Loading..." : "Login"}
           </button>
         </form>
       </div>

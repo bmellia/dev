@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { ApiError } from "../services/api";
+import { fetchCategories, type Category } from "../services/categories";
 import {
   fetchAccountSummaries,
   fetchMonthlySummary,
@@ -13,7 +14,6 @@ import {
   type TransactionRecord,
 } from "../services/transactions";
 import { InfoCard } from "../ui/InfoCard";
-import { PageHero } from "../ui/PageHero";
 import { SummaryStat } from "../ui/SummaryStat";
 
 
@@ -22,6 +22,23 @@ const currentMonth = new Date().toISOString().slice(0, 7);
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
+}
+
+function formatAccountType(type: AccountSummary["account_type"]) {
+  switch (type) {
+    case "cash":
+      return "현금";
+    case "bank":
+      return "은행";
+    case "card":
+      return "카드";
+    case "ewallet":
+      return "전자지갑";
+    case "liability":
+      return "부채";
+    default:
+      return type;
+  }
 }
 
 
@@ -33,6 +50,7 @@ function formatTransactionType(type: TransactionRecord["transaction_type"]) {
 export function DashboardPage() {
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<
     TransactionRecord[]
   >([]);
@@ -45,14 +63,16 @@ export function DashboardPage() {
     setErrorMessage("");
 
     try {
-      const [nextSummary, nextAccounts, nextTransactions] = await Promise.all([
+      const [nextSummary, nextAccounts, nextTransactions, nextCategories] = await Promise.all([
         fetchMonthlySummary(currentMonth),
         fetchAccountSummaries(),
         fetchTransactions(params),
+        fetchCategories(),
       ]);
       setSummary(nextSummary);
       setAccounts(nextAccounts);
       setRecentTransactions(nextTransactions.slice(0, 5));
+      setCategories(nextCategories);
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -70,73 +90,64 @@ export function DashboardPage() {
 
   return (
     <div className="page">
-      <PageHero
-        eyebrow="Ticket 16"
-        title="월간 대시보드"
-        description="월간 수입, 지출, 순합계와 계정별 잔액, 최근 거래를 한 화면에서 확인할 수 있도록 API를 연결했습니다."
-      />
-      <div className="toolbar-row">
-        <p className="toolbar-copy">{currentMonth} 기준 요약</p>
+      <header className="dashboard-header">
+        <div>
+          <p className="dashboard-kicker">{currentMonth} 기준</p>
+          <h2 className="dashboard-title">자산 현황</h2>
+          <p className="dashboard-description">
+            이번 달 흐름과 최근 활동을 빠르게 훑을 수 있는 최소 대시보드입니다.
+          </p>
+        </div>
         <div className="toolbar-actions">
           <Link className="ghost-link" to="/transactions">
-            거래 입력
+            거래 보기
+          </Link>
+          <Link className="ghost-link" to="/analysis">
+            분석 보기
           </Link>
           <Link className="ghost-link" to="/settings">
-            설정 이동
+            설정
           </Link>
           <button className="primary-button" onClick={() => void loadDashboard()} type="button">
             {isLoading ? "새로고침 중..." : "새로고침"}
           </button>
         </div>
-      </div>
-      <div className="card-grid">
-        <InfoCard
-          title="월간 요약"
-          description={
-            isLoading
-              ? "월간 요약을 불러오는 중입니다."
-              : summary
-              ? "수입, 지출, 순합계를 빠르게 확인합니다."
-              : "표시할 월간 요약이 없습니다."
-          }
-          body={
-            summary ? (
-              <div className="summary-grid">
-                <SummaryStat
-                  label="수입"
-                  tone="positive"
-                  value={`${formatCurrency(summary.income_total)}원`}
-                />
-                <SummaryStat
-                  label="지출"
-                  tone="negative"
-                  value={`${formatCurrency(summary.expense_total)}원`}
-                />
-                <SummaryStat
-                  label="순합계"
-                  tone={summary.net_total >= 0 ? "positive" : "negative"}
-                  value={`${formatCurrency(summary.net_total)}원`}
-                />
-              </div>
-            ) : null
-          }
+      </header>
+      <section className="dashboard-summary-strip" aria-label="월간 요약">
+        <SummaryStat
+          label="수입"
+          tone="positive"
+          value={`${formatCurrency(summary?.income_total ?? 0)}원`}
         />
+        <SummaryStat
+          label="지출"
+          tone="negative"
+          value={`${formatCurrency(summary?.expense_total ?? 0)}원`}
+        />
+        <SummaryStat
+          label="순합계"
+          tone={(summary?.net_total ?? 0) >= 0 ? "positive" : "negative"}
+          value={`${formatCurrency(summary?.net_total ?? 0)}원`}
+        />
+      </section>
+      <div className="dashboard-grid">
         <InfoCard
-          title="계정 요약"
+          title="계정 자산"
           description={
             isLoading
-              ? "계정 요약을 불러오는 중입니다."
+              ? "계정 잔액을 불러오는 중입니다."
               : accounts.length > 0
-              ? "잔액이 큰 순서로 일부 계정을 먼저 보여줍니다."
-              : "표시할 계정 요약이 없습니다."
+              ? "현재 잔액을 계정 단위로 바로 확인합니다."
+              : "등록된 계정이 없습니다."
           }
           body={
             accounts.length > 0 ? (
-              <div className="compact-list">
+              <div className="asset-grid">
                 {accounts.slice(0, 4).map((account) => (
-                  <div className="compact-row" key={account.account_id}>
-                    <span>{account.name}</span>
-                    <strong>{formatCurrency(account.balance)}원</strong>
+                  <div className="asset-card" key={account.account_id}>
+                    <span className="asset-card-label">{formatAccountType(account.account_type)}</span>
+                    <strong>{account.name}</strong>
+                    <p>{formatCurrency(account.balance)}원</p>
                   </div>
                 ))}
               </div>
@@ -144,55 +155,63 @@ export function DashboardPage() {
               <div className="empty-state-block">
                 <p className="empty-state">아직 계정이 없습니다.</p>
                 <Link className="ghost-link ghost-link-block" to="/settings">
-                  계정 만들러 가기
+                  계정 만들기
                 </Link>
               </div>
             ) : null
           }
         />
         <InfoCard
-          title="최근 거래"
+          title="최근 활동"
           description={
             isLoading
               ? "최근 거래를 불러오는 중입니다."
               : recentTransactions.length > 0
-              ? "가장 최근 거래 5건을 보여줍니다."
+              ? "마지막 5건을 카테고리와 함께 보여줍니다."
               : "최근 거래가 없습니다."
           }
           body={
             recentTransactions.length > 0 ? (
               <div className="compact-list">
                 {recentTransactions.map((transaction) => (
-                  <div className="compact-row" key={transaction.id}>
-                    <span>
-                      {formatTransactionType(transaction.transaction_type)}
-                      {" · "}
-                      {transaction.occurred_at.slice(5, 10)}
+                  <div className="activity-row" key={transaction.id}>
+                    <span className={`activity-icon activity-icon-${transaction.transaction_type}`}>
+                      {transaction.transaction_type === "income" ? "+" : "-"}
                     </span>
+                    <div className="activity-copy">
+                      <strong>
+                        {categories.find((category) => category.id === transaction.category_id)?.name ??
+                          formatTransactionType(transaction.transaction_type)}
+                      </strong>
+                      <p>{transaction.description || transaction.occurred_at.slice(5, 10)}</p>
+                    </div>
                     <strong>{formatCurrency(transaction.amount)}원</strong>
                   </div>
                 ))}
               </div>
             ) : !isLoading ? (
               <div className="empty-state-block">
-                <p className="empty-state">아직 최근 거래가 없습니다.</p>
+                <p className="empty-state">아직 최근 활동이 없습니다.</p>
                 <Link className="primary-link" to="/transactions">
-                  첫 거래 입력하기
+                  첫 거래 입력
                 </Link>
               </div>
             ) : null
           }
         />
         <InfoCard
-          title="빠른 작업"
-          description="거래 입력과 환경 정리로 바로 이동합니다."
+          title="빠른 이동"
+          description="빠른 입력, 분석, 설정 이동을 한 줄에 모았습니다."
           body={
             <div className="quick-link-grid">
               <Link className="primary-link" to="/transactions">
-                거래 화면 열기
+                거래 입력
+              </Link>
+              <Link className="ghost-link ghost-link-block" to="/analysis">
+                분석 보기
               </Link>
               <Link className="ghost-link ghost-link-block" to="/settings">
-                계정 / 카테고리 정리
+                설정 관리
               </Link>
             </div>
           }

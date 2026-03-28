@@ -27,6 +27,10 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
 }
 
+function formatCategoryTone(type: TransactionRecord["transaction_type"]) {
+  return type === "income" ? "transaction-chip-income" : "transaction-chip-expense";
+}
+
 
 export function TransactionsPage() {
   const [month, setMonth] = useState(defaultMonth);
@@ -262,138 +266,13 @@ export function TransactionsPage() {
   return (
     <div className="page">
       <PageHero
-        eyebrow="Tickets 17-18"
-        title="거래 목록과 입력 흐름"
-        description="월별 또는 일별 조회와 함께 거래 생성·수정·삭제를 같은 화면에서 처리할 수 있도록 구성했습니다."
+        eyebrow="거래"
+        title="거래 원장"
+        description="필터, 검색, 빠른 입력을 한 화면에 두고 거래를 표처럼 밀도 있게 관리할 수 있도록 구성했습니다."
       />
-      <form className="data-panel stack-form" onSubmit={handleSubmit}>
-        <div className="data-panel-head">
-          <h3>{editingTransactionId ? "거래 수정" : "거래 추가"}</h3>
-          <p>{editingTransactionId ? "선택된 거래 편집 중" : "새 거래 입력"}</p>
-        </div>
-        {!canSubmitTransaction ? (
-          <div className="guide-callout">
-            <strong>입력 전 준비 필요</strong>
-            <p>활성 계정이 아직 없습니다. 설정에서 계정을 먼저 추가해야 거래를 저장할 수 있습니다.</p>
-            <div className="quick-link-grid">
-              <Link className="primary-link" to="/settings">
-                계정 만들러 가기
-              </Link>
-            </div>
-          </div>
-        ) : null}
-        {canSubmitTransaction && filteredCategories.length === 0 ? (
-          <div className="guide-callout">
-            <strong>카테고리 없음</strong>
-            <p>현재 유형에 맞는 활성 카테고리가 없습니다. 카테고리 없이 저장할 수 있지만, 정리가 필요하면 설정에서 추가하세요.</p>
-          </div>
-        ) : null}
-        <div className="settings-grid">
-          <label className="field">
-            <span>거래 일시</span>
-            <input
-              onChange={(event) => setOccurredAt(event.target.value)}
-              type="datetime-local"
-              value={occurredAt}
-            />
-          </label>
-          <label className="field">
-            <span>유형</span>
-            <select
-              onChange={(event) =>
-                setTransactionType(
-                  event.target.value as TransactionRecord["transaction_type"],
-                )
-              }
-              value={transactionType}
-            >
-              <option value="expense">expense</option>
-              <option value="income">income</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>계정</span>
-            <select
-              onChange={(event) => setAccountId(event.target.value)}
-              value={accountId}
-            >
-              <option value="">선택</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>카테고리</span>
-            <select
-              onChange={(event) => setCategoryId(event.target.value)}
-              value={categoryId}
-            >
-              <option value="">선택 안 함</option>
-              {filteredCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>금액</span>
-            <input
-              min="1"
-              onChange={(event) => setAmount(event.target.value)}
-              type="number"
-              value={amount}
-            />
-          </label>
-          <label className="field">
-            <span>메모</span>
-            <input
-              onChange={(event) => setDescription(event.target.value)}
-              value={description}
-            />
-          </label>
-        </div>
-        <div className="quick-amount-row">
-          {quickAmountOptions[transactionType].map((value) => (
-            <button
-              className="ghost-button quick-amount-button"
-              key={value}
-              onClick={() => setAmount(String(value))}
-              type="button"
-            >
-              {formatCurrency(value)}원
-            </button>
-          ))}
-        </div>
-        <div className="transaction-preview">
-          <strong>{editingTransactionId ? "수정 미리보기" : "입력 미리보기"}</strong>
-          <p>
-            {transactionType === "income" ? "수입" : "지출"} · {selectedAccountName} ·{" "}
-            {selectedCategoryName}
-          </p>
-          <p className="transaction-preview-amount">
-            {amount ? `${formatCurrency(Number(amount))}원` : "금액 미입력"}
-          </p>
-        </div>
-        <div className="action-row">
-          <button className="primary-button" disabled={!canSubmitTransaction} type="submit">
-            {editingTransactionId ? "거래 수정" : "거래 추가"}
-          </button>
-          <button
-            className="ghost-button"
-            onClick={resetForm}
-            type="button"
-          >
-            {editingTransactionId ? "수정 취소" : "초기화"}
-          </button>
-        </div>
-      </form>
       <div className="filter-panel">
         <label className="field">
-          <span>월 조회</span>
+          <span>월</span>
           <input
             onChange={(event) => {
               setMonth(event.target.value);
@@ -404,7 +283,7 @@ export function TransactionsPage() {
           />
         </label>
         <label className="field">
-          <span>일 조회</span>
+          <span>일</span>
           <input
             max={today}
             onChange={(event) => setDay(event.target.value)}
@@ -413,7 +292,7 @@ export function TransactionsPage() {
           />
         </label>
         <label className="field">
-          <span>유형 필터</span>
+          <span>유형</span>
           <select
             onChange={(event) =>
               setTypeFilter(event.target.value as "all" | TransactionRecord["transaction_type"])
@@ -421,8 +300,8 @@ export function TransactionsPage() {
             value={typeFilter}
           >
             <option value="all">전체</option>
-            <option value="expense">지출만</option>
-            <option value="income">수입만</option>
+            <option value="expense">지출</option>
+            <option value="income">수입</option>
           </select>
         </label>
         <label className="field">
@@ -451,7 +330,7 @@ export function TransactionsPage() {
         </label>
       </div>
       <div className="toolbar-row">
-        <p className="toolbar-copy">빠른 조회</p>
+        <p className="toolbar-copy">빠른 필터</p>
         <div className="toolbar-actions">
           <button
             className="ghost-button ghost-button-light"
@@ -483,7 +362,7 @@ export function TransactionsPage() {
       </div>
       <div className="toolbar-row">
         <p className="toolbar-copy">
-          {day ? `${day} 일별 조회` : `${month} 월별 조회`}
+          {day ? `${day} 선택됨` : `${month} 선택됨`}
         </p>
         <div className="toolbar-actions">
           <button
@@ -506,19 +385,19 @@ export function TransactionsPage() {
       </div>
       <div className="card-grid">
         <InfoCard
-          title="거래 목록"
+          title="표시 건수"
           description={
             isLoading
-              ? "거래를 불러오는 중입니다."
+              ? "불러오는 중..."
               : `${visibleTransactions.length}건 표시 중`
           }
         />
         <InfoCard
-          title="수입 합계"
+          title="수입"
           description={`${formatCurrency(summary.income)}원`}
         />
         <InfoCard
-          title="지출 합계"
+          title="지출"
           description={`${formatCurrency(summary.expense)}원`}
         />
         <InfoCard
@@ -528,44 +407,179 @@ export function TransactionsPage() {
       </div>
       {statusMessage ? <p className="status-message">{statusMessage}</p> : null}
       {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
-      <section className="data-panel">
-        <div className="data-panel-head">
-          <h3>거래 내역</h3>
-          <p>{day ? `${day} 기준` : `${month} 기준`}</p>
-        </div>
-        <div className="transaction-list">
-          {visibleTransactions.length === 0 && !isLoading ? (
-            <div className="empty-state-block">
-              <p className="empty-state">표시할 거래가 없습니다.</p>
-              <p className="empty-state">
-                아직 기준 데이터가 없다면 설정에서 계정과 카테고리를 먼저 추가하세요.
-              </p>
+      <div className="transactions-layout">
+        <form className="data-panel stack-form quick-add-panel" onSubmit={handleSubmit}>
+          <div className="data-panel-head">
+            <h3>{editingTransactionId ? "거래 수정" : "빠른 입력"}</h3>
+            <p>{editingTransactionId ? "선택한 행 수정 중" : "화면에 고정된 입력 패널"}</p>
+          </div>
+          {!canSubmitTransaction ? (
+            <div className="guide-callout">
+              <strong>계정 필요</strong>
+              <p>설정에서 계정을 먼저 추가해야 거래를 저장할 수 있습니다.</p>
               <div className="quick-link-grid">
-                <Link className="ghost-link ghost-link-block" to="/settings">
-                  설정으로 이동
+                <Link className="primary-link" to="/settings">
+                  설정 열기
                 </Link>
               </div>
             </div>
           ) : null}
-          {visibleTransactions.map((transaction) => (
-            <article className="transaction-row" key={transaction.id}>
-              <div>
-                <strong>
-                  {transaction.transaction_type === "income" ? "수입" : "지출"}
-                </strong>
-                <p>{transaction.description || "메모 없음"}</p>
-                <p className="subtle-meta">
-                  {accountNameById.get(transaction.account_id) || `계정 #${transaction.account_id}`}
-                  {" · "}
-                  {transaction.category_id
-                    ? categoryNameById.get(transaction.category_id) || `카테고리 #${transaction.category_id}`
-                    : "카테고리 없음"}
+          {canSubmitTransaction && filteredCategories.length === 0 ? (
+            <div className="guide-callout">
+              <strong>카테고리 선택 가능</strong>
+              <p>현재 유형에 맞는 활성 카테고리가 없습니다. 카테고리 없이 저장할 수 있습니다.</p>
+            </div>
+          ) : null}
+          <div className="settings-grid">
+            <label className="field">
+              <span>거래 일시</span>
+              <input
+                onChange={(event) => setOccurredAt(event.target.value)}
+                type="datetime-local"
+                value={occurredAt}
+              />
+            </label>
+            <label className="field">
+              <span>유형</span>
+              <select
+                onChange={(event) =>
+                  setTransactionType(
+                    event.target.value as TransactionRecord["transaction_type"],
+                  )
+                }
+                value={transactionType}
+              >
+                <option value="expense">지출</option>
+                <option value="income">수입</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>계정</span>
+              <select
+                onChange={(event) => setAccountId(event.target.value)}
+                value={accountId}
+              >
+                <option value="">선택</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>카테고리</span>
+              <select
+                onChange={(event) => setCategoryId(event.target.value)}
+                value={categoryId}
+              >
+                <option value="">선택 안 함</option>
+                {filteredCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>금액</span>
+              <input
+                min="1"
+                onChange={(event) => setAmount(event.target.value)}
+                type="number"
+                value={amount}
+              />
+            </label>
+            <label className="field">
+              <span>메모</span>
+              <input
+                onChange={(event) => setDescription(event.target.value)}
+                value={description}
+              />
+            </label>
+          </div>
+          <div className="quick-amount-row">
+            {quickAmountOptions[transactionType].map((value) => (
+              <button
+                className="ghost-button quick-amount-button"
+                key={value}
+                onClick={() => setAmount(String(value))}
+                type="button"
+              >
+                {formatCurrency(value)}원
+              </button>
+            ))}
+          </div>
+          <div className="transaction-preview">
+            <strong>{editingTransactionId ? "수정 미리보기" : "입력 미리보기"}</strong>
+            <p>
+              {transactionType === "income" ? "수입" : "지출"} · {selectedAccountName} ·{" "}
+              {selectedCategoryName}
+            </p>
+            <p className="transaction-preview-amount">
+              {amount ? `${formatCurrency(Number(amount))}원` : "금액 없음"}
+            </p>
+          </div>
+          <div className="action-row">
+            <button className="primary-button" disabled={!canSubmitTransaction} type="submit">
+              {editingTransactionId ? "거래 수정" : "거래 저장"}
+            </button>
+            <button
+              className="ghost-button"
+              onClick={resetForm}
+              type="button"
+            >
+              {editingTransactionId ? "수정 취소" : "초기화"}
+            </button>
+          </div>
+        </form>
+        <section className="data-panel transaction-ledger-panel">
+          <div className="data-panel-head">
+            <h3>거래 목록</h3>
+            <p>{day ? `${day}` : `${month}`}</p>
+          </div>
+          <div className="transaction-table-header">
+            <span>날짜</span>
+            <span>카테고리</span>
+            <span>메모</span>
+            <span>금액</span>
+            <span>동작</span>
+          </div>
+          <div className="transaction-list transaction-table-list">
+            {visibleTransactions.length === 0 && !isLoading ? (
+              <div className="empty-state-block">
+                <p className="empty-state">현재 필터에 맞는 거래가 없습니다.</p>
+                <p className="empty-state">
+                  계정이나 카테고리가 비어 있다면 Settings에서 먼저 기준 데이터를 추가하세요.
                 </p>
+                <div className="quick-link-grid">
+                  <Link className="ghost-link ghost-link-block" to="/settings">
+                    설정 열기
+                  </Link>
+                </div>
               </div>
-              <div className="transaction-meta">
-                <span>{transaction.occurred_at.slice(0, 10)}</span>
-                <strong>{formatCurrency(transaction.amount)}원</strong>
-                <div className="action-row">
+            ) : null}
+            {visibleTransactions.map((transaction) => (
+              <article className="transaction-table-row" key={transaction.id}>
+                <div className="transaction-table-cell">
+                  <strong>{transaction.occurred_at.slice(0, 10)}</strong>
+                  <p>{transaction.occurred_at.slice(11, 16)}</p>
+                </div>
+                <div className="transaction-table-cell">
+                  <span className={`transaction-chip ${formatCategoryTone(transaction.transaction_type)}`}>
+                    {categoryNameById.get(transaction.category_id ?? 0) ??
+                      (transaction.transaction_type === "income" ? "수입" : "지출")}
+                  </span>
+                  <p>{accountNameById.get(transaction.account_id) || `계정 #${transaction.account_id}`}</p>
+                </div>
+                <div className="transaction-table-cell">
+                  <strong>{transaction.description || "메모 없음"}</strong>
+                  <p>{transaction.transaction_type === "income" ? "입금" : "출금"}</p>
+                </div>
+                <div className="transaction-table-cell transaction-table-amount">
+                  <strong>{formatCurrency(transaction.amount)}원</strong>
+                </div>
+                <div className="transaction-table-actions">
                   <button
                     className="ghost-button"
                     onClick={() => handleEdit(transaction)}
@@ -594,11 +608,11 @@ export function TransactionsPage() {
                     삭제
                   </button>
                 </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
