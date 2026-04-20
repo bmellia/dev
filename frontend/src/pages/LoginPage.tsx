@@ -49,59 +49,75 @@ export function LoginPage() {
   return (
     <div className="page page-login">
       <div className="login-layout">
-        <h1 aria-label="돈 세는 가계부" className="login-title">
-          <span className="login-title-character" style={{ transform: titleTransforms[0] }}>
-            돈
-          </span>
-          <span className="login-title-character" style={{ transform: titleTransforms[1] }}>
-            {" "}
-          </span>
-          <span className="login-title-character" style={{ transform: titleTransforms[2] }}>
-            <span className="login-title-correction">
-              <span className="login-title-correction-base">새</span>
-              <span aria-hidden="true" className="login-title-correction-mark" />
-              <span className="login-title-correction-text">세</span>
+        <section aria-label="관리자 로그인" className="login-card">
+          <h1 aria-label="돈 세는 가계부" className="login-title">
+            <span className="login-title-character" style={{ transform: titleTransforms[0] }}>
+              돈
             </span>
-          </span>
-          <span className="login-title-character" style={{ transform: titleTransforms[3] }}>
-            는
-          </span>
-          <span className="login-title-character" style={{ transform: titleTransforms[4] }}>
-            {" "}
-          </span>
-          <span className="login-title-character" style={{ transform: titleTransforms[5] }}>
-            가
-          </span>
-          <span className="login-title-character" style={{ transform: titleTransforms[6] }}>
-            계
-          </span>
-          <span className="login-title-character" style={{ transform: titleTransforms[0] }}>
-            부
-          </span>
-        </h1>
-        <form className="login-form login-card" onSubmit={handleSubmit}>
-          <input
-            aria-label="ID"
-            autoComplete="username"
-            className="login-input"
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="ID"
-            value={username}
-          />
-          <input
-            aria-label="PW"
-            autoComplete="current-password"
-            className="login-input"
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="PW"
-            type="password"
-            value={password}
-          />
-          {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
-          <button className="primary-button" disabled={isSubmitting} type="submit">
-            {isSubmitting ? "Loading..." : "Login"}
-          </button>
-        </form>
+            <span className="login-title-character" style={{ transform: titleTransforms[1] }}>
+              {" "}
+            </span>
+            <span className="login-title-character" style={{ transform: titleTransforms[2] }}>
+              <span className="login-title-correction">
+                <span className="login-title-correction-base">새</span>
+                <span aria-hidden="true" className="login-title-correction-mark" />
+                <span className="login-title-correction-text">세</span>
+              </span>
+            </span>
+            <span className="login-title-character" style={{ transform: titleTransforms[3] }}>
+              는
+            </span>
+            <span className="login-title-character" style={{ transform: titleTransforms[4] }}>
+              {" "}
+            </span>
+            <span className="login-title-character" style={{ transform: titleTransforms[5] }}>
+              가
+            </span>
+            <span className="login-title-character" style={{ transform: titleTransforms[6] }}>
+              계
+            </span>
+            <span className="login-title-character" style={{ transform: titleTransforms[0] }}>
+              부
+            </span>
+          </h1>
+          <form className="login-form" onSubmit={handleSubmit}>
+            <label className="login-field">
+              <span className="login-field-label">User ID</span>
+              <span className="login-input-shell">
+                <span aria-hidden="true" className="login-input-icon">
+                  ID
+                </span>
+                <input
+                  autoComplete="username"
+                  className="login-input"
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="admin"
+                  value={username}
+                />
+              </span>
+            </label>
+            <label className="login-field">
+              <span className="login-field-label">Password</span>
+              <span className="login-input-shell">
+                <span aria-hidden="true" className="login-input-icon">
+                  PW
+                </span>
+                <input
+                  autoComplete="current-password"
+                  className="login-input"
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="password"
+                  type="password"
+                  value={password}
+                />
+              </span>
+            </label>
+            {errorMessage ? <p className="form-error">{errorMessage}</p> : null}
+            <button className="primary-button" disabled={isSubmitting} type="submit">
+              {isSubmitting ? "Loading..." : "Sign In"}
+            </button>
+          </form>
+        </section>
       </div>
     </div>
   );
