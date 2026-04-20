@@ -90,7 +90,7 @@ wait_for_health()
 status, headers, body = request_json(
     "/auth/login",
     method="POST",
-    data={"username": "admin", "password": "1234*"},
+    data={"username": "admin", "password": "*12344321*"},
 )
 assert status == 200, status
 assert body["username"] == "admin", body

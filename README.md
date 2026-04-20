@@ -53,7 +53,7 @@ docker compose -f /data/dev/docker-compose.yml up --build
 
 Default bootstrap admin credentials:
 - username: `admin`
-- password: `1234*`
+- password: `*12344321*`
 
 Change them in `.env` before non-local use.
 

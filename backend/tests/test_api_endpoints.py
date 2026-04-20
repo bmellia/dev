@@ -23,6 +23,9 @@ from app.models import Account, AdminUser, Category, Transaction
 from app.services.auth_service import create_admin_user
 
 
+ADMIN_PASSWORD = "*12344321*"
+
+
 class ApiEndpointsTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -311,7 +314,7 @@ class ApiEndpointsTestCase(unittest.TestCase):
         change_response = self.client.post(
             "/auth/change-password",
             json={
-                "current_password": "admin1234",
+                "current_password": ADMIN_PASSWORD,
                 "new_password": "nextpass1234",
             },
         )
@@ -319,7 +322,7 @@ class ApiEndpointsTestCase(unittest.TestCase):
 
         failed_login_response = self.client.post(
             "/auth/login",
-            json={"username": "admin", "password": "admin1234"},
+            json={"username": "admin", "password": ADMIN_PASSWORD},
         )
         self.assertEqual(failed_login_response.status_code, 401)
 
@@ -338,7 +341,7 @@ class ApiEndpointsTestCase(unittest.TestCase):
         try:
             login_response = self.client.post(
                 "/auth/login",
-                json={"username": "admin", "password": "admin1234"},
+                json={"username": "admin", "password": ADMIN_PASSWORD},
             )
             self.assertEqual(login_response.status_code, 200)
             self.assertIn("Max-Age=1200", login_response.headers["set-cookie"])
@@ -368,7 +371,7 @@ class ApiEndpointsTestCase(unittest.TestCase):
         try:
             login_response = self.client.post(
                 "/auth/login",
-                json={"username": "admin", "password": "admin1234"},
+                json={"username": "admin", "password": ADMIN_PASSWORD},
             )
             self.assertEqual(login_response.status_code, 200)
 
@@ -402,7 +405,7 @@ class ApiEndpointsTestCase(unittest.TestCase):
     def _seed_admin_user(self) -> None:
         db = self.SessionLocal()
         try:
-            create_admin_user(db, "admin", "admin1234")
+            create_admin_user(db, "admin", ADMIN_PASSWORD)
         finally:
             db.close()
 

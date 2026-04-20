@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.core.security import get_password_hash, verify_password
 from app.db.base import Base
 from app.db.session import SessionLocal, check_db_connection, engine
 from app.models import AdminUser
@@ -43,6 +44,13 @@ def _ensure_admin_user() -> None:
             select(AdminUser).where(AdminUser.username == settings.admin_username),
         )
         if existing_admin is not None:
+            if not verify_password(settings.admin_password, existing_admin.password_hash):
+                existing_admin.password_hash = get_password_hash(settings.admin_password)
+                db.add(existing_admin)
+                db.commit()
+                logger.info("admin user password updated: %s", settings.admin_username)
+                return
+
             logger.info("admin user already exists: %s", settings.admin_username)
             return
 

@@ -53,7 +53,7 @@ import urllib.error
 
 payload = json.dumps({
     "username": "admin",
-    "password": "1234*",
+    "password": "*12344321*",
 }).encode("utf-8")
 for attempt in range(1, 21):
     request = urllib.request.Request(
