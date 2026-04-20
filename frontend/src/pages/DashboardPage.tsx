@@ -17,6 +17,18 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat("ko-KR").format(value);
 }
 
+function padDatePart(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function toMonthKey(date: Date) {
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}`;
+}
+
+function toDateKey(date: Date) {
+  return `${toMonthKey(date)}-${padDatePart(date.getDate())}`;
+}
+
 function getMonthLabel(month: string) {
   return new Date(`${month}-01T00:00:00`).toLocaleDateString("ko-KR", {
     month: "long",
@@ -25,7 +37,7 @@ function getMonthLabel(month: string) {
 }
 
 function getDateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  return toDateKey(date);
 }
 
 function buildCalendarDays(month: string) {
@@ -88,11 +100,11 @@ function formatSignedAmount(transaction: TransactionRecord) {
 function shiftMonth(month: string, diff: number) {
   const date = new Date(`${month}-01T00:00:00`);
   date.setMonth(date.getMonth() + diff);
-  return date.toISOString().slice(0, 7);
+  return toMonthKey(date);
 }
 
 export function DashboardPage() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toDateKey(new Date());
   const [month, setMonth] = useState(today.slice(0, 7));
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
