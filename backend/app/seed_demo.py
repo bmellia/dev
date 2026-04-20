@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.bootstrap import bootstrap
 from app.db.session import SessionLocal
-from app.models import Account, Category, Transaction
+from app.models import Account, AdminUser, Category, Transaction
+from app.services.auth_service import get_admin_by_username
 
 
 def seed_demo_data() -> None:
@@ -19,17 +20,21 @@ def seed_demo_data() -> None:
             print("Demo seed skipped: existing transactions found.")
             return
 
+        admin_user = get_admin_by_username(db, "admin")
+        if admin_user is None:
+            raise RuntimeError("Bootstrap admin user not found")
+
         accounts = {
-            "국민은행": _get_or_create_account(db, "국민은행", "bank"),
-            "현금지갑": _get_or_create_account(db, "현금지갑", "cash"),
-            "생활비카드": _get_or_create_account(db, "생활비카드", "card"),
+            "국민은행": _get_or_create_account(db, admin_user, "국민은행", "bank"),
+            "현금지갑": _get_or_create_account(db, admin_user, "현금지갑", "cash"),
+            "생활비카드": _get_or_create_account(db, admin_user, "생활비카드", "card"),
         }
 
         categories = {
-            "급여": _get_or_create_category(db, "급여", "income"),
-            "식비": _get_or_create_category(db, "식비", "expense"),
-            "교통": _get_or_create_category(db, "교통", "expense"),
-            "쇼핑": _get_or_create_category(db, "쇼핑", "expense"),
+            "급여": _get_or_create_category(db, admin_user, "급여", "income"),
+            "식비": _get_or_create_category(db, admin_user, "식비", "expense"),
+            "교통": _get_or_create_category(db, admin_user, "교통", "expense"),
+            "쇼핑": _get_or_create_category(db, admin_user, "쇼핑", "expense"),
         }
 
         now = datetime.now().replace(minute=0, second=0, microsecond=0)
@@ -44,6 +49,7 @@ def seed_demo_data() -> None:
         for transaction_type, account_id, category_id, amount, description, occurred_at in samples:
             db.add(
                 Transaction(
+                    admin_user_id=admin_user.id,
                     occurred_at=occurred_at,
                     transaction_type=transaction_type,
                     account_id=account_id,
@@ -59,20 +65,41 @@ def seed_demo_data() -> None:
         db.close()
 
 
-def _get_or_create_account(db: Session, name: str, account_type: str) -> Account:
-    account = db.scalar(select(Account).where(Account.name == name))
+def _get_or_create_account(
+    db: Session,
+    admin_user: AdminUser,
+    name: str,
+    account_type: str,
+) -> Account:
+    account = db.scalar(
+        select(Account).where(
+            Account.admin_user_id == admin_user.id,
+            Account.name == name,
+        ),
+    )
     if account is not None:
         return account
 
-    account = Account(name=name, account_type=account_type, is_active=True)
+    account = Account(
+        admin_user_id=admin_user.id,
+        name=name,
+        account_type=account_type,
+        is_active=True,
+    )
     db.add(account)
     db.flush()
     return account
 
 
-def _get_or_create_category(db: Session, name: str, category_type: str) -> Category:
+def _get_or_create_category(
+    db: Session,
+    admin_user: AdminUser,
+    name: str,
+    category_type: str,
+) -> Category:
     category = db.scalar(
         select(Category).where(
+            Category.admin_user_id == admin_user.id,
             Category.name == name,
             Category.category_type == category_type,
         ),
@@ -80,7 +107,12 @@ def _get_or_create_category(db: Session, name: str, category_type: str) -> Categ
     if category is not None:
         return category
 
-    category = Category(name=name, category_type=category_type, is_active=True)
+    category = Category(
+        admin_user_id=admin_user.id,
+        name=name,
+        category_type=category_type,
+        is_active=True,
+    )
     db.add(category)
     db.flush()
     return category

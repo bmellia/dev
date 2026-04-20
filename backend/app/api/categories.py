@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.session import require_admin_user
 from app.db.session import get_db
+from app.models.admin_user import AdminUser
 from app.schemas.category import (
     CategoryCreate,
     CategoryResponse,
@@ -32,9 +33,11 @@ def read_categories(
     include_inactive: bool = Query(default=True),
     category_type: Annotated[CategoryType | None, Query()] = None,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> list[CategoryResponse]:
     return list_categories(
         db,
+        admin_user.id,
         include_inactive=include_inactive,
         category_type=category_type,
     )
@@ -44,8 +47,9 @@ def read_categories(
 def read_category(
     category_id: int,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> CategoryResponse:
-    category = get_category(db, category_id)
+    category = get_category(db, category_id, admin_user.id)
     if category is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -58,11 +62,13 @@ def read_category(
 def create_category_endpoint(
     payload: CategoryCreate,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> CategoryResponse:
-    _validate_parent_category(db, payload.parent_id, payload.category_type)
+    _validate_parent_category(db, admin_user.id, payload.parent_id, payload.category_type)
 
     existing_category = get_category_by_name(
         db,
+        admin_user.id,
         payload.name.strip(),
         payload.category_type,
         payload.parent_id,
@@ -73,7 +79,7 @@ def create_category_endpoint(
             detail="Category already exists",
         )
 
-    return create_category(db, payload)
+    return create_category(db, admin_user.id, payload)
 
 
 @router.patch("/{category_id}", response_model=CategoryResponse)
@@ -81,8 +87,9 @@ def update_category_endpoint(
     category_id: int,
     payload: CategoryUpdate,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> CategoryResponse:
-    category = get_category(db, category_id)
+    category = get_category(db, category_id, admin_user.id)
     if category is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -104,11 +111,12 @@ def update_category_endpoint(
         )
 
     if "parent_id" in updated_fields:
-        _validate_parent_category(db, payload.parent_id, next_category_type)
+        _validate_parent_category(db, admin_user.id, payload.parent_id, next_category_type)
 
     if {"name", "category_type", "parent_id"} & updated_fields:
         existing_category = get_category_by_name(
             db,
+            admin_user.id,
             (payload.name or category.name).strip(),
             next_category_type,
             next_parent_id,
@@ -126,8 +134,9 @@ def update_category_endpoint(
 def deactivate_category(
     category_id: int,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> CategoryResponse:
-    category = get_category(db, category_id)
+    category = get_category(db, category_id, admin_user.id)
     if category is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -139,13 +148,14 @@ def deactivate_category(
 
 def _validate_parent_category(
     db: Session,
+    admin_user_id: int,
     parent_id: int | None,
     category_type: CategoryType,
 ) -> None:
     if parent_id is None:
         return
 
-    parent_category = get_category(db, parent_id)
+    parent_category = get_category(db, parent_id, admin_user_id)
     if parent_category is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

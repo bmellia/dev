@@ -14,7 +14,8 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from fastapi.testclient import TestClient
 
-from app.core.session import require_admin_user
+from app.core.config import settings
+from app.core.session import _get_serializer, require_admin_user
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
@@ -60,6 +61,7 @@ class ApiEndpointsTestCase(unittest.TestCase):
         Base.metadata.create_all(bind=self.engine)
         self._seed_admin_user()
         self.client = TestClient(app)
+        self._set_current_user(1, "admin")
 
     def tearDown(self) -> None:
         self.client.close()
@@ -235,6 +237,76 @@ class ApiEndpointsTestCase(unittest.TestCase):
         self.assertIn("date,transaction_type,account,category,amount", export_response.text)
         self.assertIn("2026-03-01,expense,Card,Transport,1400,Bus,manual,,", export_response.text)
 
+    def test_user_data_is_scoped_per_login(self) -> None:
+        self._create_second_admin_user()
+
+        primary_account_id = self._create_account("Wallet", "cash")
+        primary_category_id = self._create_category("Food", "expense")
+        primary_transaction_response = self.client.post(
+            "/transactions",
+            json={
+                "occurred_at": "2026-03-18T09:00:00",
+                "transaction_type": "expense",
+                "account_id": primary_account_id,
+                "category_id": primary_category_id,
+                "amount": 12000,
+                "description": "admin expense",
+            },
+        )
+        self.assertEqual(primary_transaction_response.status_code, 201)
+
+        self._set_current_user(2, "second")
+        second_account_id = self._create_account("Wallet", "cash")
+        second_category_id = self._create_category("Food", "expense")
+        second_transaction_response = self.client.post(
+            "/transactions",
+            json={
+                "occurred_at": "2026-03-19T09:00:00",
+                "transaction_type": "expense",
+                "account_id": second_account_id,
+                "category_id": second_category_id,
+                "amount": 24000,
+                "description": "second expense",
+            },
+        )
+        self.assertEqual(second_transaction_response.status_code, 201)
+
+        self._set_current_user(1, "admin")
+        accounts_response = self.client.get("/accounts")
+        self.assertEqual(accounts_response.status_code, 200)
+        self.assertEqual(len(accounts_response.json()), 1)
+        self.assertEqual(accounts_response.json()[0]["id"], primary_account_id)
+
+        transactions_response = self.client.get("/transactions", params={"month": "2026-03"})
+        self.assertEqual(transactions_response.status_code, 200)
+        self.assertEqual(len(transactions_response.json()), 1)
+        self.assertEqual(transactions_response.json()[0]["description"], "admin expense")
+
+        summary_response = self.client.get("/dashboard/summary", params={"month": "2026-03"})
+        self.assertEqual(summary_response.status_code, 200)
+        self.assertEqual(summary_response.json()["expense_total"], 12000)
+
+        export_response = self.client.get("/exports/transactions.csv")
+        self.assertEqual(export_response.status_code, 200)
+        self.assertIn("admin expense", export_response.text)
+        self.assertNotIn("second expense", export_response.text)
+
+        account_response = self.client.get(f"/accounts/{second_account_id}")
+        self.assertEqual(account_response.status_code, 404)
+
+        invalid_transaction_response = self.client.post(
+            "/transactions",
+            json={
+                "occurred_at": "2026-03-20T09:00:00",
+                "transaction_type": "expense",
+                "account_id": second_account_id,
+                "category_id": second_category_id,
+                "amount": 5000,
+                "description": "cross user access",
+            },
+        )
+        self.assertEqual(invalid_transaction_response.status_code, 404)
+
     def test_change_password(self) -> None:
         change_response = self.client.post(
             "/auth/change-password",
@@ -257,6 +329,59 @@ class ApiEndpointsTestCase(unittest.TestCase):
         )
         self.assertEqual(success_login_response.status_code, 200)
         self.assertEqual(success_login_response.json()["username"], "admin")
+        self.assertIn("expires_at", success_login_response.json())
+
+    def test_auth_session_expires_after_max_age(self) -> None:
+        app.dependency_overrides.pop(require_admin_user, None)
+        original_max_age = settings.session_cookie_max_age
+
+        try:
+            login_response = self.client.post(
+                "/auth/login",
+                json={"username": "admin", "password": "admin1234"},
+            )
+            self.assertEqual(login_response.status_code, 200)
+            self.assertIn("Max-Age=1200", login_response.headers["set-cookie"])
+
+            serializer = _get_serializer()
+            expired_cookie = serializer.dumps({"admin_user_id": 1})
+            settings.session_cookie_max_age = -1
+
+            self.client.cookies.set(
+                settings.session_cookie_name,
+                expired_cookie,
+            )
+
+            me_response = self.client.get("/auth/me")
+            self.assertEqual(me_response.status_code, 401)
+        finally:
+            settings.session_cookie_max_age = original_max_age
+            app.dependency_overrides[require_admin_user] = lambda: SimpleNamespace(
+                id=1,
+                username="admin",
+                is_active=True,
+            )
+
+    def test_auth_me_returns_session_expiration(self) -> None:
+        app.dependency_overrides.pop(require_admin_user, None)
+
+        try:
+            login_response = self.client.post(
+                "/auth/login",
+                json={"username": "admin", "password": "admin1234"},
+            )
+            self.assertEqual(login_response.status_code, 200)
+
+            me_response = self.client.get("/auth/me")
+            self.assertEqual(me_response.status_code, 200)
+            self.assertEqual(me_response.json()["username"], "admin")
+            self.assertIn("expires_at", me_response.json())
+        finally:
+            app.dependency_overrides[require_admin_user] = lambda: SimpleNamespace(
+                id=1,
+                username="admin",
+                is_active=True,
+            )
 
     def _create_account(self, name: str, account_type: str) -> int:
         response = self.client.post(
@@ -280,6 +405,20 @@ class ApiEndpointsTestCase(unittest.TestCase):
             create_admin_user(db, "admin", "admin1234")
         finally:
             db.close()
+
+    def _create_second_admin_user(self) -> None:
+        db = self.SessionLocal()
+        try:
+            create_admin_user(db, "second", "second1234")
+        finally:
+            db.close()
+
+    def _set_current_user(self, user_id: int, username: str) -> None:
+        app.dependency_overrides[require_admin_user] = lambda: SimpleNamespace(
+            id=user_id,
+            username=username,
+            is_active=True,
+        )
 
 
 if __name__ == "__main__":

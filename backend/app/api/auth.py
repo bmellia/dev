@@ -1,8 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.core.session import clear_session_cookie, require_admin_user, set_session_cookie
+from app.core.session import (
+    clear_session_cookie,
+    get_session_expires_at,
+    load_session_payload,
+    require_admin_user,
+    set_session_cookie,
+)
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.admin_user import AdminUser
 from app.services.auth_service import authenticate_admin, change_admin_password
@@ -19,6 +28,7 @@ class LoginRequest(BaseModel):
 class AdminSessionResponse(BaseModel):
     id: int
     username: str
+    expires_at: datetime
 
 
 class ChangePasswordRequest(BaseModel):
@@ -40,7 +50,11 @@ def login(
         )
 
     set_session_cookie(response, admin_user.id)
-    return AdminSessionResponse(id=admin_user.id, username=admin_user.username)
+    return AdminSessionResponse(
+        id=admin_user.id,
+        username=admin_user.username,
+        expires_at=get_session_expires_at(datetime.now(timezone.utc)),
+    )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -52,9 +66,22 @@ def logout() -> Response:
 
 @router.get("/me", response_model=AdminSessionResponse)
 def me(
+    request: Request,
     admin_user=Depends(require_admin_user),
 ) -> AdminSessionResponse:
-    return AdminSessionResponse(id=admin_user.id, username=admin_user.username)
+    cookie_value = request.cookies.get(settings.session_cookie_name)
+    expires_at = datetime.now(timezone.utc)
+    if cookie_value:
+        session_payload = load_session_payload(cookie_value)
+        if session_payload is not None:
+            _payload, issued_at = session_payload
+            expires_at = get_session_expires_at(issued_at)
+
+    return AdminSessionResponse(
+        id=admin_user.id,
+        username=admin_user.username,
+        expires_at=expires_at,
+    )
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)

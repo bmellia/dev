@@ -20,6 +20,8 @@ export class ApiError extends Error {
   }
 }
 
+export const unauthorizedEventName = "auth:unauthorized";
+
 
 export async function apiFetch<T>(
   path: string,
@@ -35,6 +37,10 @@ export async function apiFetch<T>(
   });
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(unauthorizedEventName));
+    }
+
     let message = `API request failed: ${response.status}`;
 
     try {

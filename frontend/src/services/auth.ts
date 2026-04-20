@@ -4,6 +4,7 @@ import { apiFetch } from "./api";
 export type AdminSession = {
   id: number;
   username: string;
+  expires_at: string;
 };
 
 type LoginPayload = {

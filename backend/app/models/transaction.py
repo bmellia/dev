@@ -10,6 +10,11 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    admin_user_id: Mapped[int] = mapped_column(
+        ForeignKey("admin_users.id"),
+        nullable=False,
+        index=True,
+    )
     occurred_at: Mapped[datetime] = mapped_column(DateTime(), nullable=False)
     transaction_type: Mapped[str] = mapped_column(String(20), nullable=False)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)

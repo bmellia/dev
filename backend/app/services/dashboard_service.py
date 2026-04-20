@@ -7,7 +7,7 @@ from app.models.account import Account
 from app.models.transaction import Transaction
 
 
-def get_monthly_summary(db: Session, month: str) -> dict[str, int]:
+def get_monthly_summary(db: Session, admin_user_id: int, month: str) -> dict[str, int]:
     start_at, end_at = _resolve_month_range(month)
 
     income_case = case(
@@ -23,6 +23,7 @@ def get_monthly_summary(db: Session, month: str) -> dict[str, int]:
         func.coalesce(func.sum(income_case), 0),
         func.coalesce(func.sum(expense_case), 0),
     ).where(
+        Transaction.admin_user_id == admin_user_id,
         Transaction.occurred_at >= start_at,
         Transaction.occurred_at < end_at,
     )
@@ -35,7 +36,10 @@ def get_monthly_summary(db: Session, month: str) -> dict[str, int]:
     }
 
 
-def get_account_summaries(db: Session) -> list[dict[str, int | str | bool]]:
+def get_account_summaries(
+    db: Session,
+    admin_user_id: int,
+) -> list[dict[str, int | str | bool]]:
     signed_amount = case(
         (Transaction.transaction_type == "income", Transaction.amount),
         else_=-Transaction.amount,
@@ -50,6 +54,7 @@ def get_account_summaries(db: Session) -> list[dict[str, int | str | bool]]:
             func.coalesce(func.sum(signed_amount), 0).label("balance"),
         )
         .outerjoin(Transaction, Transaction.account_id == Account.id)
+        .where(Account.admin_user_id == admin_user_id)
         .group_by(
             Account.id,
             Account.name,

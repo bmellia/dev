@@ -5,20 +5,33 @@ from app.models.transaction import Transaction
 from app.schemas.transaction import TransactionCreate, TransactionUpdate
 
 
-def list_transactions(db: Session) -> list[Transaction]:
-    statement: Select[tuple[Transaction]] = select(Transaction).order_by(
-        Transaction.occurred_at.desc(),
-        Transaction.id.desc(),
+def list_transactions(db: Session, admin_user_id: int) -> list[Transaction]:
+    statement: Select[tuple[Transaction]] = select(Transaction).where(
+        Transaction.admin_user_id == admin_user_id,
     )
+    statement = statement.order_by(Transaction.occurred_at.desc(), Transaction.id.desc())
     return list(db.scalars(statement).all())
 
 
-def get_transaction(db: Session, transaction_id: int) -> Transaction | None:
-    return db.get(Transaction, transaction_id)
+def get_transaction(
+    db: Session,
+    transaction_id: int,
+    admin_user_id: int,
+) -> Transaction | None:
+    statement = select(Transaction).where(
+        Transaction.id == transaction_id,
+        Transaction.admin_user_id == admin_user_id,
+    )
+    return db.scalar(statement)
 
 
-def create_transaction(db: Session, payload: TransactionCreate) -> Transaction:
+def create_transaction(
+    db: Session,
+    admin_user_id: int,
+    payload: TransactionCreate,
+) -> Transaction:
     transaction = Transaction(
+        admin_user_id=admin_user_id,
         occurred_at=payload.occurred_at,
         transaction_type=payload.transaction_type,
         account_id=payload.account_id,

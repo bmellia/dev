@@ -9,7 +9,7 @@ from app.models.category import Category
 from app.models.transaction import Transaction
 
 
-def export_transactions_csv(db: Session) -> str:
+def export_transactions_csv(db: Session, admin_user_id: int) -> str:
     statement = (
         select(
             Transaction.occurred_at,
@@ -24,6 +24,7 @@ def export_transactions_csv(db: Session) -> str:
         )
         .join(Account, Account.id == Transaction.account_id)
         .outerjoin(Category, Category.id == Transaction.category_id)
+        .where(Transaction.admin_user_id == admin_user_id)
         .order_by(Transaction.occurred_at.asc(), Transaction.id.asc())
     )
 

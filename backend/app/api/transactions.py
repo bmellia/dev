@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.session import require_admin_user
 from app.db.session import get_db
 from app.models.account import Account
+from app.models.admin_user import AdminUser
 from app.models.category import Category
 from app.schemas.transaction import (
     TransactionCreate,
@@ -35,10 +36,12 @@ def read_transactions(
     account_id: int | None = None,
     category_id: int | None = None,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> list[TransactionResponse]:
     try:
         return query_transactions(
             db,
+            admin_user_id=admin_user.id,
             month=month,
             day=day,
             account_id=account_id,
@@ -55,8 +58,9 @@ def read_transactions(
 def read_transaction(
     transaction_id: int,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> TransactionResponse:
-    transaction = get_transaction(db, transaction_id)
+    transaction = get_transaction(db, transaction_id, admin_user.id)
     if transaction is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -69,14 +73,16 @@ def read_transaction(
 def create_transaction_endpoint(
     payload: TransactionCreate,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> TransactionResponse:
     _validate_transaction_relations(
         db=db,
+        admin_user_id=admin_user.id,
         account_id=payload.account_id,
         category_id=payload.category_id,
         transaction_type=payload.transaction_type,
     )
-    return create_transaction(db, payload)
+    return create_transaction(db, admin_user.id, payload)
 
 
 @router.patch("/{transaction_id}", response_model=TransactionResponse)
@@ -84,8 +90,9 @@ def update_transaction_endpoint(
     transaction_id: int,
     payload: TransactionUpdate,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> TransactionResponse:
-    transaction = get_transaction(db, transaction_id)
+    transaction = get_transaction(db, transaction_id, admin_user.id)
     if transaction is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -103,6 +110,7 @@ def update_transaction_endpoint(
 
     _validate_transaction_relations(
         db=db,
+        admin_user_id=admin_user.id,
         account_id=next_account_id,
         category_id=next_category_id,
         transaction_type=next_transaction_type,
@@ -114,8 +122,9 @@ def update_transaction_endpoint(
 def delete_transaction_endpoint(
     transaction_id: int,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> Response:
-    transaction = get_transaction(db, transaction_id)
+    transaction = get_transaction(db, transaction_id, admin_user.id)
     if transaction is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -128,6 +137,7 @@ def delete_transaction_endpoint(
 
 def _validate_transaction_relations(
     db: Session,
+    admin_user_id: int,
     account_id: int,
     category_id: int | None,
     transaction_type: str,
@@ -138,12 +148,22 @@ def _validate_transaction_relations(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Account not found",
         )
+    if account.admin_user_id != admin_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found",
+        )
 
     if category_id is None:
         return
 
     category = db.get(Category, category_id)
     if category is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found",
+        )
+    if category.admin_user_id != admin_user_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Category not found",

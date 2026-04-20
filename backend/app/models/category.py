@@ -10,6 +10,11 @@ class Category(Base):
     __tablename__ = "categories"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    admin_user_id: Mapped[int] = mapped_column(
+        ForeignKey("admin_users.id"),
+        nullable=False,
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     category_type: Mapped[str] = mapped_column(String(20), nullable=False)
     parent_id: Mapped[int | None] = mapped_column(

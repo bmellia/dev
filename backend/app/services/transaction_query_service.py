@@ -9,12 +9,15 @@ from app.models.transaction import Transaction
 def query_transactions(
     db: Session,
     *,
+    admin_user_id: int,
     month: str | None = None,
     day: date | None = None,
     account_id: int | None = None,
     category_id: int | None = None,
 ) -> list[Transaction]:
-    statement: Select[tuple[Transaction]] = select(Transaction)
+    statement: Select[tuple[Transaction]] = select(Transaction).where(
+        Transaction.admin_user_id == admin_user_id,
+    )
 
     start_at, end_at = _resolve_date_range(month=month, day=day)
     if start_at is not None and end_at is not None:

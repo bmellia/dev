@@ -20,11 +20,11 @@ class Settings(BaseSettings):
     session_cookie_name: str = "ledger_session"
     session_cookie_secure: bool = False
     session_cookie_samesite: str = "lax"
-    session_cookie_max_age: int = 60 * 60 * 24 * 7
+    session_cookie_max_age: int = 60 * 20
     app_log_dir: str = "/data/log/app"
     app_log_level: str = "INFO"
     admin_username: str = "admin"
-    admin_password: str = "1234*"
+    admin_password: str = "*12344321*"
 
     @property
     def sqlalchemy_database_uri(self) -> str:

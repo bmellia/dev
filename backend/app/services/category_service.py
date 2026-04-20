@@ -7,12 +7,14 @@ from app.schemas.category import CategoryCreate, CategoryUpdate
 
 def list_categories(
     db: Session,
+    admin_user_id: int,
     include_inactive: bool = True,
     category_type: str | None = None,
 ) -> list[Category]:
-    statement: Select[tuple[Category]] = select(Category).order_by(
-        Category.id.asc(),
+    statement: Select[tuple[Category]] = select(Category).where(
+        Category.admin_user_id == admin_user_id,
     )
+    statement = statement.order_by(Category.id.asc())
     if not include_inactive:
         statement = statement.where(Category.is_active.is_(True))
     if category_type is not None:
@@ -20,17 +22,23 @@ def list_categories(
     return list(db.scalars(statement).all())
 
 
-def get_category(db: Session, category_id: int) -> Category | None:
-    return db.get(Category, category_id)
+def get_category(db: Session, category_id: int, admin_user_id: int) -> Category | None:
+    statement = select(Category).where(
+        Category.id == category_id,
+        Category.admin_user_id == admin_user_id,
+    )
+    return db.scalar(statement)
 
 
 def get_category_by_name(
     db: Session,
+    admin_user_id: int,
     name: str,
     category_type: str,
     parent_id: int | None,
 ) -> Category | None:
     statement = select(Category).where(
+        Category.admin_user_id == admin_user_id,
         Category.name == name,
         Category.category_type == category_type,
         Category.parent_id == parent_id,
@@ -38,8 +46,9 @@ def get_category_by_name(
     return db.scalar(statement)
 
 
-def create_category(db: Session, payload: CategoryCreate) -> Category:
+def create_category(db: Session, admin_user_id: int, payload: CategoryCreate) -> Category:
     category = Category(
+        admin_user_id=admin_user_id,
         name=payload.name.strip(),
         category_type=payload.category_type,
         parent_id=payload.parent_id,

@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -13,6 +14,7 @@ import {
   logout as logoutRequest,
   type AdminSession,
 } from "../services/auth";
+import { unauthorizedEventName } from "../services/api";
 
 
 type AuthContextValue = {
@@ -29,13 +31,43 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AdminSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const expiryTimeoutRef = useRef<number | null>(null);
+
+  const clearExpiryTimeout = () => {
+    if (expiryTimeoutRef.current !== null) {
+      window.clearTimeout(expiryTimeoutRef.current);
+      expiryTimeoutRef.current = null;
+    }
+  };
+
+  const applySession = (nextSession: AdminSession | null) => {
+    clearExpiryTimeout();
+
+    if (nextSession === null) {
+      setSession(null);
+      return;
+    }
+
+    const expiresAtMs = Date.parse(nextSession.expires_at);
+    if (Number.isNaN(expiresAtMs) || expiresAtMs <= Date.now()) {
+      setSession(null);
+      return;
+    }
+
+    expiryTimeoutRef.current = window.setTimeout(() => {
+      setSession(null);
+      expiryTimeoutRef.current = null;
+    }, expiresAtMs - Date.now());
+
+    setSession(nextSession);
+  };
 
   const refreshSession = async () => {
     try {
       const nextSession = await fetchCurrentSession();
-      setSession(nextSession);
+      applySession(nextSession);
     } catch {
-      setSession(null);
+      applySession(null);
     } finally {
       setIsLoading(false);
     }
@@ -45,14 +77,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refreshSession();
   }, []);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      clearExpiryTimeout();
+      setSession(null);
+      setIsLoading(false);
+    };
+
+    window.addEventListener(unauthorizedEventName, handleUnauthorized);
+    return () => {
+      window.removeEventListener(unauthorizedEventName, handleUnauthorized);
+      clearExpiryTimeout();
+    };
+  }, []);
+
   const login = async (username: string, password: string) => {
     const nextSession = await loginRequest({ username, password });
-    setSession(nextSession);
+    applySession(nextSession);
   };
 
   const logout = async () => {
     await logoutRequest();
-    setSession(null);
+    applySession(null);
   };
 
   const value = useMemo(

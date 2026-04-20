@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.session import require_admin_user
 from app.db.session import get_db
+from app.models.admin_user import AdminUser
 from app.schemas.account import AccountCreate, AccountResponse, AccountUpdate
 from app.services.account_service import (
     create_account,
@@ -24,16 +25,22 @@ router = APIRouter(
 def read_accounts(
     include_inactive: bool = Query(default=True),
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> list[AccountResponse]:
-    return list_accounts(db, include_inactive=include_inactive)
+    return list_accounts(
+        db,
+        admin_user.id,
+        include_inactive=include_inactive,
+    )
 
 
 @router.get("/{account_id}", response_model=AccountResponse)
 def read_account(
     account_id: int,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> AccountResponse:
-    account = get_account(db, account_id)
+    account = get_account(db, account_id, admin_user.id)
     if account is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -46,15 +53,16 @@ def read_account(
 def create_account_endpoint(
     payload: AccountCreate,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> AccountResponse:
-    existing_account = get_account_by_name(db, payload.name.strip())
+    existing_account = get_account_by_name(db, admin_user.id, payload.name.strip())
     if existing_account is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Account name already exists",
         )
 
-    return create_account(db, payload)
+    return create_account(db, admin_user.id, payload)
 
 
 @router.patch("/{account_id}", response_model=AccountResponse)
@@ -62,8 +70,9 @@ def update_account_endpoint(
     account_id: int,
     payload: AccountUpdate,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> AccountResponse:
-    account = get_account(db, account_id)
+    account = get_account(db, account_id, admin_user.id)
     if account is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -71,7 +80,7 @@ def update_account_endpoint(
         )
 
     if payload.name is not None:
-        existing_account = get_account_by_name(db, payload.name.strip())
+        existing_account = get_account_by_name(db, admin_user.id, payload.name.strip())
         if existing_account is not None and existing_account.id != account_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -85,8 +94,9 @@ def update_account_endpoint(
 def deactivate_account(
     account_id: int,
     db: Session = Depends(get_db),
+    admin_user: AdminUser = Depends(require_admin_user),
 ) -> AccountResponse:
-    account = get_account(db, account_id)
+    account = get_account(db, account_id, admin_user.id)
     if account is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
